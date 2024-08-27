@@ -10,7 +10,7 @@ import webbrowser
 import moviepy.editor as mp
 import tempfile
 import shutil
-
+import numpy as np
 
 try:
     import pyi_splash
@@ -23,6 +23,24 @@ def resource_path(relative_path):
     if hasattr(sys, '_MEIPASS'):
         return os.path.join(sys._MEIPASS, relative_path)
     return os.path.join(os.path.abspath("."), relative_path)
+
+def apply_tone_mapping(hdr_image):
+
+    # トーンマッピングアルゴリズムを選択（例：Reinhardのアルゴリズム）
+    tonemap = cv2.createTonemapReinhard(gamma=0.35)
+
+    # 32ビット浮動小数点型に変換
+    hdr_image = hdr_image.astype(np.float32) / 255.0
+
+    # トーンマップ
+    ldr_image = tonemap.process(hdr_image)
+
+    # NaNを0に置き換え
+    ldr_image = np.nan_to_num(ldr_image)
+
+    # 0-255の範囲にクリップ
+    ldr_image = np.clip(ldr_image * 255, 0, 255).astype(np.uint8)
+    return ldr_image
 
 def main(page: ft.Page):
 
@@ -42,7 +60,12 @@ def main(page: ft.Page):
         cuda_dis=True
 
     #movie main
-    def video_main(video_in:str,video_out:str,device:str,score:float):
+    def video_main(video_in:str,video_out:str,device_cuda:bool,score:float,hdr:bool):
+
+        if device_cuda == True:
+            device='cuda:0'
+        else:
+            device='cpu'
 
         tm = cv2.TickMeter()
         tm.reset()
@@ -54,7 +77,9 @@ def main(page: ft.Page):
         vfps = int(cap.get(cv2.CAP_PROP_FPS))
         w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
         h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+
+        # fourcc = cv2.VideoWriter_fourcc(*'mp4v')    #when debug
+        fourcc = cv2.VideoWriter_fourcc(*'avc1')  #when release open-h264
 
         frame_max=int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
 
@@ -72,6 +97,9 @@ def main(page: ft.Page):
             success, frame = cap.read()
             if success:
                 # Run YOLOv8 inference on the frame
+                if hdr==True:
+                    frame=apply_tone_mapping(frame)
+
                 results = model.predict(source=frame,conf=score,device=device,imgsz=w,show_labels=False,show_conf=False,show_boxes=False)
 
                 # the annotated frame
@@ -134,7 +162,12 @@ def main(page: ft.Page):
         process_finished()
 
 
-    def image_main(video_in:str,frame:int,device:str,score:float):
+    def image_main(video_in:str,frame:int,device_bool:bool,score:float,hdr:bool):
+
+        if device_bool == True:
+            device='cuda:0'
+        else:
+            device='cpu'
 
         cap = cv2.VideoCapture(video_in)
 
@@ -147,6 +180,9 @@ def main(page: ft.Page):
         cap.set(cv2.CAP_PROP_POS_FRAMES, frame)
 
         ret, frame = cap.read()
+
+        if hdr==True:
+            frame=apply_tone_mapping(frame)
 
         results = model.predict(source=frame,conf=score,device=device,imgsz=w,show_labels=False,show_conf=False,show_boxes=False)
 
@@ -173,13 +209,6 @@ def main(page: ft.Page):
         preview_button.icon_color=ft.colors.GREEN
         page.update()
 
-    def check_item_clicked(e):
-        if e.control.value == True:
-            e.control.value == False
-        else:
-            e.control.value == True
-        page.update()
-
     def start_clicked(e):
         e.control.disabled = True
         e.control.icon_color=''
@@ -187,12 +216,8 @@ def main(page: ft.Page):
         preview_button.icon_color=''
         stop_button.disabled = False
         stop_button.icon_color=ft.colors.RED
-        if cuda_switch.value == True:
-            device='cuda:0'
-        else:
-            device='cpu'
         page.update()
-        video_main(selected_files.value,save_file_path.value,device,float(slider_t.value))
+        video_main(selected_files.value,save_file_path.value,cuda_switch.value,float(slider_t.value),hdr_check.value)
 
 
     def stop_clicked(e):
@@ -210,11 +235,7 @@ def main(page: ft.Page):
         start_button.disabled = True
         start_button.icon_color=''
         page.add(image_ring)
-        if cuda_switch.value == True:
-            device='cuda:0'
-        else:
-            device='cpu'
-        image_main(selected_files.value,flame_slider_t.value,device,float(slider_t.value))
+        image_main(selected_files.value,flame_slider_t.value,cuda_switch.value,float(slider_t.value),hdr_check.value)
         page.remove(image_ring)
         preview_button.disabled=False
         preview_button.icon_color=ft.colors.GREEN
@@ -277,6 +298,7 @@ def main(page: ft.Page):
             video_flame_slider.max=int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
             video_flame_slider.divisions=int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
             video_flame_slider.disabled=False
+            video_flame_slider.value=0
             video_flame_slider.update()
             flame_slider_t.update()
             start_button.disabled=False
@@ -327,8 +349,10 @@ def main(page: ft.Page):
 
     video_flame_slider=ft.Slider(min=0, max=1000, divisions=1000,disabled=True,on_change=flame_slider_change)
 
-    cuda_switch = ft.Switch(label="CUDA", value=cuda_n,disabled=cuda_dis,on_change=check_item_clicked)
+    cuda_switch = ft.Switch(label="CUDA", value=cuda_n,disabled=cuda_dis)
     image_ring=ft.ProgressBar(color=ft.colors.LIGHT_BLUE_400)
+
+    hdr_check=ft.Checkbox(label="HDRtoSDR(Slow)", value=False)
 
     page.padding=10
     page.window.width=700
@@ -343,9 +367,9 @@ def main(page: ft.Page):
                 ft.WindowDragArea(ft.Container(ft.Text("WoLNamesBlackedOut",theme_style=ft.TextThemeStyle.TITLE_LARGE,color=ft.colors.WHITE), bgcolor=ft.colors.INDIGO_900,padding=10,border_radius=5,), expand=True),
                 ft.PopupMenuButton(
                     items=[
-                        ft.PopupMenuItem(text="ver.20240826"),
-                        ft.PopupMenuItem(text="User's Manual",on_click=url_click), 
-                        ft.PopupMenuItem(text="Git Hub",on_click=url_click_2), 
+                        ft.PopupMenuItem(text="ver.20240827"),
+                        ft.PopupMenuItem(text="User's Manual",on_click=url_click),
+                        ft.PopupMenuItem(text="Git Hub",on_click=url_click_2),
                     ]
                 ),
                 ft.IconButton(ft.icons.CLOSE, on_click=lambda _: page.window.close())
@@ -387,10 +411,11 @@ def main(page: ft.Page):
                 ),
         ft.Row(controls=[
                 cuda_switch,
-                ft.Text("   "),
+                ft.Text("  "),
                 ft.Text("Score Threshold"),
                 score_threshold_slider,
                 slider_t,
+                hdr_check,
                 ]
         ),
         ft.Divider(),
