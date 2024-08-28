@@ -18,6 +18,7 @@ except:
     pass
 
 from logging import getLogger
+from moviepy.video.VideoClip import proglog
 
 def resource_path(relative_path):
     if hasattr(sys, '_MEIPASS'):
@@ -41,6 +42,19 @@ def apply_tone_mapping(hdr_image):
     # 0-255の範囲にクリップ
     ldr_image = np.clip(ldr_image * 255, 0, 255).astype(np.uint8)
     return ldr_image
+
+class WriteVideoProgress(proglog.ProgressBarLogger):
+    def __init__(self, progress, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.progress = progress
+
+    def callback(self, **changes):
+     pass
+
+    def bars_callback(self, bar, attr, value,old_value=None):
+        percentage = (value / self.bars[bar]['total'])
+        self.progress.value=percentage
+        self.progress.update()
 
 def main(page: ft.Page):
 
@@ -78,8 +92,8 @@ def main(page: ft.Page):
         w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
         h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
-        # fourcc = cv2.VideoWriter_fourcc(*'mp4v')    #when debug
-        fourcc = cv2.VideoWriter_fourcc(*'avc1')  #when release open-h264
+
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')    #when debug
 
         frame_max=int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
 
@@ -114,7 +128,7 @@ def main(page: ft.Page):
                 elapsed_i=tm.getTimeSec()
                 tm.start()
 
-                frame_prgress.value=str(int(cap.get(cv2.CAP_PROP_POS_FRAMES)))+'/'+str(frame_max)
+                frame_progress.value=str(int(cap.get(cv2.CAP_PROP_POS_FRAMES)))+'/'+str(frame_max)
                 elapsed.value=str(format(elapsed_i,'.2f'))+'s'
                 fps.value = str(format(int(cap.get(cv2.CAP_PROP_POS_FRAMES)) / elapsed_i,'.2f'))
                 percentage = int(cap.get(cv2.CAP_PROP_POS_FRAMES))/frame_max
@@ -124,7 +138,7 @@ def main(page: ft.Page):
                 elapsed.update()
                 fps.update()
                 eta.update()
-                frame_prgress.update()
+                frame_progress.update()
 
                 if start_button.disabled == False:
                         tm.stop()
@@ -154,7 +168,8 @@ def main(page: ft.Page):
 
             # audio track add
             clip = mp.VideoFileClip(video_temp_filename).subclip()
-            clip.write_videofile(video_out, audio=audio_temp_filename,verbose=False, logger=None)
+            # clip.write_videofile(video_out, audio=audio_temp_filename,verbose=False, logger=None)
+            clip.write_videofile(video_out, audio=audio_temp_filename,verbose=False, logger=WriteVideoProgress(pb))
             page.remove(image_ring)
 
             snack_bar_message("Movie Complete")
@@ -198,6 +213,7 @@ def main(page: ft.Page):
 
         cap.release()
 
+
     def process_finished():
         start_button.disabled = False
         start_button.icon_color=ft.colors.BLUE
@@ -207,6 +223,8 @@ def main(page: ft.Page):
         stop_button.update()
         preview_button.disabled=False
         preview_button.icon_color=ft.colors.GREEN
+        pb.value=0
+        frame_progress.value='0000/0000'
         page.update()
 
     def start_clicked(e):
@@ -248,7 +266,7 @@ def main(page: ft.Page):
     fps = ft.Text(value='0.00s')
     eta = ft.Text(value='0.00s')
     elapsed = ft.Text(value='0.00s')
-    frame_prgress = ft.Text(value='0000/0000')
+    frame_progress = ft.Text(value='0000/0000')
 
     #start button
     start_button=ft.ElevatedButton(
@@ -300,6 +318,7 @@ def main(page: ft.Page):
             video_flame_slider.disabled=False
             video_flame_slider.value=0
             video_flame_slider.update()
+            flame_slider_t.value=0
             flame_slider_t.update()
             start_button.disabled=False
             start_button.update()
@@ -367,7 +386,7 @@ def main(page: ft.Page):
                 ft.WindowDragArea(ft.Container(ft.Text("WoLNamesBlackedOut",theme_style=ft.TextThemeStyle.TITLE_LARGE,color=ft.colors.WHITE), bgcolor=ft.colors.INDIGO_900,padding=10,border_radius=5,), expand=True),
                 ft.PopupMenuButton(
                     items=[
-                        ft.PopupMenuItem(text="ver.20240827"),
+                        ft.PopupMenuItem(text="ver.20240828"),
                         ft.PopupMenuItem(text="User's Manual",on_click=url_click),
                         ft.PopupMenuItem(text="Git Hub",on_click=url_click_2),
                     ]
@@ -444,7 +463,7 @@ def main(page: ft.Page):
         ft.Row(controls=
             [
                 pb,
-                frame_prgress
+                frame_progress
                 ]
             ),
         ft.Row(controls=

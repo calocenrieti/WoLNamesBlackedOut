@@ -3,7 +3,7 @@
 a = Analysis(
     ['main.py'],
     pathex=[],
-    binaries=[('openh264-1.8.0-win64.dll','.'),],
+    binaries=[],
     datas=[('my_yolov8n.pt','.'),('my_yolov8n.yaml','.'),],
     hiddenimports=[],
     hookspath=['./hooks'],
