@@ -66,12 +66,13 @@ def main(page: ft.Page):
     model = YOLO(resource_path("my_yolov8n.yaml"))
     model = YOLO(resource_path("my_yolov8n.pt"))
 
+    cuda_dis=True
+
     if torch.cuda.device_count() > 0:
-            cuda_n=True
-            cuda_dis=False
+        cuda_n=True
+
     else:
         cuda_n=False
-        cuda_dis=True
 
     #movie main
     def video_main(video_in:str,video_out:str,device_cuda:bool,score:float,hdr:bool):
@@ -368,7 +369,7 @@ def main(page: ft.Page):
 
     video_flame_slider=ft.Slider(min=0, max=1000, divisions=1000,disabled=True,on_change=flame_slider_change)
 
-    cuda_switch = ft.Switch(label="CUDA", value=cuda_n,disabled=cuda_dis)
+    cuda_switch = ft.Checkbox(label="CUDA", value=cuda_n,disabled=cuda_dis)
     image_ring=ft.ProgressBar(color=ft.colors.LIGHT_BLUE_400)
 
     hdr_check=ft.Checkbox(label="HDRtoSDR(Slow)", value=False)
@@ -386,7 +387,7 @@ def main(page: ft.Page):
                 ft.WindowDragArea(ft.Container(ft.Text("WoLNamesBlackedOut",theme_style=ft.TextThemeStyle.TITLE_LARGE,color=ft.colors.WHITE), bgcolor=ft.colors.INDIGO_900,padding=10,border_radius=5,), expand=True),
                 ft.PopupMenuButton(
                     items=[
-                        ft.PopupMenuItem(text="ver.20240828"),
+                        ft.PopupMenuItem(text="ver.20240901"),
                         ft.PopupMenuItem(text="User's Manual",on_click=url_click),
                         ft.PopupMenuItem(text="Git Hub",on_click=url_click_2),
                     ]
