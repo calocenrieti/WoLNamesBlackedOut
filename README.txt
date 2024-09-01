@@ -37,8 +37,9 @@ CUDAを利用しているため、Nvidia GPU推奨です。
 CUDA利用時は20FPS程度で、元の動画が60FPSであれば、3倍程度の処理時間＋音声の合成時間が必要ということになります。
 
 ダウンロードはこちらから。
-https://drive.google.com/file/d/1cHM7b--cGXg7ahZoiL1uHD-ztUm_w2vL/view?usp=drive_link
+https://download-count-gpemgma5enb6cqe6.japaneast-01.azurewebsites.net/download_WoLNamesBlackedOut.php
 ZIPファイルで2.5GB(!)もあります。適当なフォルダに解凍し、ご利用ください。
+ファイル本体はgoogle driveにあります。
 
 GitHubはこちらから。
 https://github.com/calocenrieti/WoLNamesBlackedOut
