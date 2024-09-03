@@ -20,6 +20,10 @@ except:
 from logging import getLogger
 from moviepy.video.VideoClip import proglog
 
+from bs4 import BeautifulSoup
+import requests
+
+
 def resource_path(relative_path):
     if hasattr(sys, '_MEIPASS'):
         return os.path.join(sys._MEIPASS, relative_path)
@@ -49,7 +53,7 @@ class WriteVideoProgress(proglog.ProgressBarLogger):
         self.progress = progress
 
     def callback(self, **changes):
-     pass
+        pass
 
     def bars_callback(self, bar, attr, value,old_value=None):
         percentage = (value / self.bars[bar]['total'])
@@ -57,6 +61,9 @@ class WriteVideoProgress(proglog.ProgressBarLogger):
         self.progress.update()
 
 def main(page: ft.Page):
+
+    ver="ver.20240903"
+    github_url="https://raw.githubusercontent.com/calocenrieti/WoLNamesBlackedOut/main/main.py"
 
     logger = getLogger('ultralytics')
     logger.disabled = True
@@ -70,9 +77,19 @@ def main(page: ft.Page):
 
     if torch.cuda.device_count() > 0:
         cuda_n=True
-
     else:
         cuda_n=False
+
+    def update_check():
+        try:
+            response = requests.get(url=github_url)
+            html = response.content
+            soup = BeautifulSoup(html, 'html.parser')
+            all_text=soup.get_text()
+            if (ver not in all_text):
+                snack_bar_message("A new version has been released.")
+        except:
+            pass
 
     #movie main
     def video_main(video_in:str,video_out:str,device_cuda:bool,score:float,hdr:bool):
@@ -169,14 +186,12 @@ def main(page: ft.Page):
 
             # audio track add
             clip = mp.VideoFileClip(video_temp_filename).subclip()
-            # clip.write_videofile(video_out, audio=audio_temp_filename,verbose=False, logger=None)
             clip.write_videofile(video_out, audio=audio_temp_filename,verbose=False, logger=WriteVideoProgress(pb))
             page.remove(image_ring)
 
             snack_bar_message("Movie Complete")
 
         process_finished()
-
 
     def image_main(video_in:str,frame:int,device_bool:bool,score:float,hdr:bool):
 
@@ -254,7 +269,7 @@ def main(page: ft.Page):
         start_button.disabled = True
         start_button.icon_color=''
         page.add(image_ring)
-        image_main(selected_files.value,flame_slider_t.value,cuda_switch.value,float(slider_t.value),hdr_check.value)
+        image_main(selected_files.value,int(frame_slider_t.value),cuda_switch.value,float(slider_t.value),hdr_check.value)
         page.remove(image_ring)
         preview_button.disabled=False
         preview_button.icon_color=ft.colors.GREEN
@@ -300,11 +315,16 @@ def main(page: ft.Page):
         slider_t.value = e.control.value
         slider_t.update()
 
-    def flame_slider_change(e):
-        flame_slider_t.value = int(e.control.value)
-        flame_slider_t.update()
+    def frame_slider_change(e):
+        frame_slider_t.value = int(e.control.value)
+        frame_slider_t.update()
 
-    flame_slider_t = ft.Text()
+    def frame_textfield_change(e):
+        video_frame_slider.value=int(e.control.value)
+        video_frame_slider.update()
+
+    frame_slider_t = ft.TextField(label='Frame',border="none",width=100,on_change=frame_textfield_change)
+
     slider_t = ft.Text(value=f_score_init)
 
     def pick_files_result(e: ft.FilePickerResultEvent):
@@ -314,21 +334,21 @@ def main(page: ft.Page):
         if e.files or selected_files.value != "Cancelled!":
             selected_files.value=e.files[0].path
             cap = cv2.VideoCapture(selected_files.value)
-            video_flame_slider.max=int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-            video_flame_slider.divisions=int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-            video_flame_slider.disabled=False
-            video_flame_slider.value=0
-            video_flame_slider.update()
-            flame_slider_t.value=0
-            flame_slider_t.update()
+            video_frame_slider.max=int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+            video_frame_slider.divisions=int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+            video_frame_slider.disabled=False
+            video_frame_slider.value=0
+            video_frame_slider.update()
+            frame_slider_t.value=0
+            frame_slider_t.update()
             start_button.disabled=False
             start_button.update()
             preview_button.disabled=False
             preview_button.update()
             cap.release()
         else:
-            video_flame_slider.disabled=True
-            video_flame_slider.update()
+            video_frame_slider.disabled=True
+            video_frame_slider.update()
             start_button.disabled=True
             start_button.update()
             preview_button.disabled=True
@@ -363,11 +383,12 @@ def main(page: ft.Page):
         page.snack_bar.open = True
         page.update()
 
+    update_check()
     page.overlay.extend([pick_files_dialog, save_file_dialog])
 
     score_threshold_slider=ft.Slider(min=0, max=0.5, value=f_score_init,divisions=50,on_change=slider_change)
 
-    video_flame_slider=ft.Slider(min=0, max=1000, divisions=1000,disabled=True,on_change=flame_slider_change)
+    video_frame_slider=ft.Slider(min=0, max=1000, divisions=1000,disabled=True,on_change=frame_slider_change)
 
     cuda_switch = ft.Checkbox(label="CUDA", value=cuda_n,disabled=cuda_dis)
     image_ring=ft.ProgressBar(color=ft.colors.LIGHT_BLUE_400)
@@ -381,15 +402,18 @@ def main(page: ft.Page):
     page.window.title_bar_buttons_hidden = True
 
     page.scroll = ft.ScrollMode.AUTO
+
     page.add(
         ft.Row(
             [
                 ft.WindowDragArea(ft.Container(ft.Text("WoLNamesBlackedOut",theme_style=ft.TextThemeStyle.TITLE_LARGE,color=ft.colors.WHITE), bgcolor=ft.colors.INDIGO_900,padding=10,border_radius=5,), expand=True),
                 ft.PopupMenuButton(
                     items=[
-                        ft.PopupMenuItem(text="ver.20240901"),
-                        ft.PopupMenuItem(text="User's Manual",on_click=url_click),
+                        ft.PopupMenuItem(text="Support Page",on_click=url_click),
                         ft.PopupMenuItem(text="Git Hub",on_click=url_click_2),
+                        ft.PopupMenuItem(),
+                        ft.PopupMenuItem(text=ver),
+
                     ]
                 ),
                 ft.IconButton(ft.icons.CLOSE, on_click=lambda _: page.window.close())
@@ -448,9 +472,9 @@ def main(page: ft.Page):
             [
                 preview_button,
                 ft.Text("   "),
-                ft.Text("Video Flame"),
-                video_flame_slider,
-                flame_slider_t,
+                ft.Text("Video frame"),
+                video_frame_slider,
+                frame_slider_t,
                 ]
         ),
 
@@ -478,11 +502,14 @@ def main(page: ft.Page):
                 ]
             ),
     )
+
     page.update()
+
 
     try:
         pyi_splash.close()
     except:
         pass
+
 
 ft.app(target=main)
