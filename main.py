@@ -37,7 +37,7 @@ def apply_tone_mapping(hdr_image):
     # 32ビット浮動小数点型に変換
     hdr_image = hdr_image.astype(np.float32) / 255.0
 
-    # トーンマップ
+    # トーンマップZ
     ldr_image = tonemap.process(hdr_image)
 
     # NaNを0に置き換え
@@ -62,7 +62,7 @@ class WriteVideoProgress(proglog.ProgressBarLogger):
 
 def main(page: ft.Page):
 
-    ver="ver.20240903"
+    ver="ver.20240905"
     github_url="https://raw.githubusercontent.com/calocenrieti/WoLNamesBlackedOut/main/main.py"
 
     logger = getLogger('ultralytics')
@@ -74,6 +74,8 @@ def main(page: ft.Page):
     model = YOLO(resource_path("my_yolov8n.pt"))
 
     cuda_dis=True
+
+    rect_op=[]
 
     if torch.cuda.device_count() > 0:
         cuda_n=True
@@ -139,6 +141,9 @@ def main(page: ft.Page):
                     for box in results[0].boxes:
                         xmin, ymin, xmax, ymax = map(int, box.xyxy[0])  # バウンディングボックスの座標
                         frame = cv2.rectangle(frame ,(xmin, ymin),(xmax, ymax),(0, 0, 0),-1)
+                    for box_op in rect_op:
+                        xmin, ymin, xmax, ymax = map(int, box_op)
+                        frame = cv2.rectangle(frame ,(xmin, ymin),(xmax, ymax),(0, 0, 0),-1)
 
                 video_writer.write(frame)
 
@@ -195,6 +200,46 @@ def main(page: ft.Page):
 
     def image_main(video_in:str,frame:int,device_bool:bool,score:float,hdr:bool):
 
+        is_click = False
+        x1=0
+        y1=0
+
+        def mouse_callback(event,x,y,flags,param):
+
+            nonlocal frame
+            nonlocal is_click
+            nonlocal img_tmp
+            nonlocal x1
+            nonlocal y1
+            nonlocal rect_op
+
+            if event == cv2.EVENT_LBUTTONDOWN:
+                if is_click==False:
+                    is_click=True
+                    x1=x
+                    y1=y
+
+            if event == cv2.EVENT_LBUTTONUP:
+                if is_click==True:
+                    cv2.rectangle(img_tmp,(x1,y1),(x,y),(0,0,0),-1)
+                    cv2.imshow('BlackedOutFrame',img_tmp)
+                    is_click=False
+                    rect_op.append([x1,y1,x,y])
+                    snack_bar_message("Added BlackedOut squares {}".format(len(rect_op)) )
+
+            if event == cv2.EVENT_MOUSEMOVE:
+                if is_click==True:
+                    img_tmp1=img_tmp.copy()
+                    cv2.rectangle(img_tmp1,(x1,y1),(x,y),(100,0,0),3)
+                    cv2.imshow('BlackedOutFrame',img_tmp1)
+
+            if event == cv2.EVENT_RBUTTONDOWN:
+                is_click=False
+                img_tmp=frame.copy()
+                rect_op=[]
+                cv2.imshow('BlackedOutFrame',img_tmp)
+                snack_bar_message("Reset all the added squares")
+
         if device_bool == True:
             device='cuda:0'
         else:
@@ -221,10 +266,14 @@ def main(page: ft.Page):
         if len(results[0]) > 0:
             for box in results[0].boxes:
                 xmin, ymin, xmax, ymax = map(int, box.xyxy[0])  # bbox
-
+                frame = cv2.rectangle(frame ,(xmin, ymin),(xmax, ymax),(0, 0, 0),-1)
+            for box_op in rect_op:
+                xmin, ymin, xmax, ymax = map(int, box_op)
                 frame = cv2.rectangle(frame ,(xmin, ymin),(xmax, ymax),(0, 0, 0),-1)
 
-        cv2.imshow("BlackedOutFrame", frame)
+        img_tmp=frame.copy()
+        cv2.imshow("BlackedOutFrame", img_tmp)
+        cv2.setMouseCallback("BlackedOutFrame",mouse_callback)
         cv2.waitKey(0)
 
         cap.release()
