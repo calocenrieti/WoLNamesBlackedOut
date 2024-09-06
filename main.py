@@ -37,7 +37,7 @@ def apply_tone_mapping(hdr_image):
     # 32ビット浮動小数点型に変換
     hdr_image = hdr_image.astype(np.float32) / 255.0
 
-    # トーンマップZ
+    # トーンマップ
     ldr_image = tonemap.process(hdr_image)
 
     # NaNを0に置き換え
@@ -62,7 +62,7 @@ class WriteVideoProgress(proglog.ProgressBarLogger):
 
 def main(page: ft.Page):
 
-    ver="ver.20240905"
+    ver="ver.20240906"
     github_url="https://raw.githubusercontent.com/calocenrieti/WoLNamesBlackedOut/main/main.py"
 
     logger = getLogger('ultralytics')
@@ -89,7 +89,7 @@ def main(page: ft.Page):
             soup = BeautifulSoup(html, 'html.parser')
             all_text=soup.get_text()
             if (ver not in all_text):
-                snack_bar_message("A new version has been released.")
+                snack_bar_message("A NEW VERSION has been released.")
         except:
             pass
 
@@ -213,6 +213,8 @@ def main(page: ft.Page):
             nonlocal y1
             nonlocal rect_op
 
+            mag=1/(resize_slider.value/100)
+
             if event == cv2.EVENT_LBUTTONDOWN:
                 if is_click==False:
                     is_click=True
@@ -224,7 +226,7 @@ def main(page: ft.Page):
                     cv2.rectangle(img_tmp,(x1,y1),(x,y),(0,0,0),-1)
                     cv2.imshow('BlackedOutFrame',img_tmp)
                     is_click=False
-                    rect_op.append([x1,y1,x,y])
+                    rect_op.append([int(mag*x1),int(mag*y1),int(mag*x),int(mag*y)])
                     snack_bar_message("Added BlackedOut squares {}".format(len(rect_op)) )
 
             if event == cv2.EVENT_MOUSEMOVE:
@@ -236,6 +238,7 @@ def main(page: ft.Page):
             if event == cv2.EVENT_RBUTTONDOWN:
                 is_click=False
                 img_tmp=frame.copy()
+                img_tmp=cv2.resize(img_tmp,None,fx=resize_slider.value/100,fy=resize_slider.value/100)
                 rect_op=[]
                 cv2.imshow('BlackedOutFrame',img_tmp)
                 snack_bar_message("Reset all the added squares")
@@ -267,11 +270,13 @@ def main(page: ft.Page):
             for box in results[0].boxes:
                 xmin, ymin, xmax, ymax = map(int, box.xyxy[0])  # bbox
                 frame = cv2.rectangle(frame ,(xmin, ymin),(xmax, ymax),(0, 0, 0),-1)
+            frame_op_add=frame.copy()
             for box_op in rect_op:
                 xmin, ymin, xmax, ymax = map(int, box_op)
-                frame = cv2.rectangle(frame ,(xmin, ymin),(xmax, ymax),(0, 0, 0),-1)
+                frame_op_add = cv2.rectangle(frame_op_add ,(xmin, ymin),(xmax, ymax),(0, 0, 0),-1)
 
-        img_tmp=frame.copy()
+        img_tmp=frame_op_add.copy()
+        img_tmp=cv2.resize(img_tmp,None,fx=resize_slider.value/100,fy=resize_slider.value/100)
         cv2.imshow("BlackedOutFrame", img_tmp)
         cv2.setMouseCallback("BlackedOutFrame",mouse_callback)
         cv2.waitKey(0)
@@ -372,7 +377,7 @@ def main(page: ft.Page):
         video_frame_slider.value=int(e.control.value)
         video_frame_slider.update()
 
-    frame_slider_t = ft.TextField(label='Frame',border="none",width=100,on_change=frame_textfield_change)
+    frame_slider_t = ft.TextField(label='Frame',border="none",width=60,on_change=frame_textfield_change)
 
     slider_t = ft.Text(value=f_score_init)
 
@@ -390,6 +395,8 @@ def main(page: ft.Page):
             video_frame_slider.update()
             frame_slider_t.value=0
             frame_slider_t.update()
+            resize_slider.disabled=False
+            resize_slider.update()
             start_button.disabled=False
             start_button.update()
             preview_button.disabled=False
@@ -402,6 +409,8 @@ def main(page: ft.Page):
             start_button.update()
             preview_button.disabled=True
             preview_button.update()
+            resize_slider.disabled=True
+            resize_slider.update()
 
         selected_files.update()
 
@@ -437,16 +446,18 @@ def main(page: ft.Page):
 
     score_threshold_slider=ft.Slider(min=0, max=0.5, value=f_score_init,divisions=50,on_change=slider_change)
 
-    video_frame_slider=ft.Slider(min=0, max=1000, divisions=1000,disabled=True,on_change=frame_slider_change)
+    video_frame_slider=ft.Slider(min=0, max=1000, divisions=1000,width=300,disabled=True,on_change=frame_slider_change)
 
     cuda_switch = ft.Checkbox(label="CUDA", value=cuda_n,disabled=cuda_dis)
     image_ring=ft.ProgressBar(color=ft.colors.LIGHT_BLUE_400)
 
     hdr_check=ft.Checkbox(label="HDRtoSDR(Slow)", value=False)
 
+    resize_slider=ft.Slider(value=100,min=50, max=100,width=120, divisions=5, disabled=True,label="Resize {value}%")
+
     page.padding=10
     page.window.width=700
-    page.window.height=550
+    page.window.height=700
     page.window.title_bar_hidden = True
     page.window.title_bar_buttons_hidden = True
 
@@ -514,19 +525,29 @@ def main(page: ft.Page):
         ft.Divider(),
         ft.Row(controls=
             [
-                ft.Text("  Rendering", theme_style=ft.TextThemeStyle.BODY_LARGE),
+                ft.Text("  Preview", theme_style=ft.TextThemeStyle.BODY_LARGE),
                 ]
                 ),
         ft.Row(controls=
             [
-                preview_button,
-                ft.Text("   "),
-                ft.Text("Video frame"),
+                # preview_button,
+                ft.Text(" Video frame"),
                 video_frame_slider,
                 frame_slider_t,
+                resize_slider,
                 ]
         ),
-
+        ft.Row(controls=
+            [
+                preview_button,
+            ]
+            ),
+        ft.Divider(),
+        ft.Row(controls=
+            [
+                ft.Text("  Movie rendering", theme_style=ft.TextThemeStyle.BODY_LARGE),
+                ]
+                ),
         ft.Row(controls=
             [
                 start_button,
