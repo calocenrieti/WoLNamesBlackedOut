@@ -62,7 +62,7 @@ class WriteVideoProgress(proglog.ProgressBarLogger):
 
 def main(page: ft.Page):
 
-    ver="ver.20240906"
+    ver="ver.20240908"
     github_url="https://raw.githubusercontent.com/calocenrieti/WoLNamesBlackedOut/main/main.py"
 
     logger = getLogger('ultralytics')
@@ -191,7 +191,10 @@ def main(page: ft.Page):
 
             # audio track add
             clip = mp.VideoFileClip(video_temp_filename).subclip()
-            clip.write_videofile(video_out, audio=audio_temp_filename,verbose=False, logger=WriteVideoProgress(pb))
+            if cuda_n==True:
+                clip.write_videofile(video_out, audio=audio_temp_filename,verbose=False,codec='hevc_nvenc', bitrate='11M', preset='slow',logger=WriteVideoProgress(pb))
+            else:
+                clip.write_videofile(video_out, audio=audio_temp_filename,verbose=False,logger=WriteVideoProgress(pb))
             page.remove(image_ring)
 
             snack_bar_message("Movie Complete")
