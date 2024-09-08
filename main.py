@@ -62,7 +62,7 @@ class WriteVideoProgress(proglog.ProgressBarLogger):
 
 def main(page: ft.Page):
 
-    ver="ver.20240908"
+    ver="ver.20240908A"
     github_url="https://raw.githubusercontent.com/calocenrieti/WoLNamesBlackedOut/main/main.py"
 
     logger = getLogger('ultralytics')
