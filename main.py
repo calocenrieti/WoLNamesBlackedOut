@@ -1,33 +1,136 @@
-import flet as ft
-import torch
-
+import ffmpeg
+import numpy as np
+import os
+import subprocess
 import cv2
 from ultralytics import YOLO
-
 import sys
-import os
+from logging import getLogger
+import flet as ft
+import torch
 import webbrowser
-import moviepy.editor as mp
-import tempfile
-import shutil
-import numpy as np
+from bs4 import BeautifulSoup
+import requests
+import time
 
 try:
     import pyi_splash
 except:
     pass
 
-from logging import getLogger
-from moviepy.video.VideoClip import proglog
+ver="ver.20240920"
+github_url="https://raw.githubusercontent.com/calocenrieti/WoLNamesBlackedOut/main/main.py"
 
-from bs4 import BeautifulSoup
-import requests
-
+# 実行ファイルのパスの取得
+current_dir = os.getcwd()
+# 環境変数の設定
+path = os.path.join(current_dir, r'ffmpeg\bin')
+os.environ['PATH'] = path
 
 def resource_path(relative_path):
     if hasattr(sys, '_MEIPASS'):
         return os.path.join(sys._MEIPASS, relative_path)
     return os.path.join(os.path.abspath("."), relative_path)
+
+def get_video_size(filename):
+# def get_video_size(process,filename):
+    probe = ffmpeg.probe(filename,loglevel="quiet")
+    video_info = next(s for s in probe['streams'] if s['codec_type'] == 'video')
+    width = int(video_info['width'])
+    height = int(video_info['height'])
+    fps = int(eval(video_info["r_frame_rate"]))
+    frame_max=int(video_info["nb_frames"])
+    color_primaries=video_info["color_primaries"]
+    # video_bitrate=int(video_info["bit_rate"])
+    return width, height,fps,frame_max,color_primaries
+
+def start_ffmpeg_process1(in_filename,color_primaries):
+    if color_primaries=='bt2020':
+        args = (
+            ffmpeg
+            .input(in_filename,hwaccel='cuda',loglevel="quiet")
+            .video.filter('zscale', t='linear', npl=100)
+            .filter('format', pix_fmts='gbrpf32le')
+            .filter('zscale', p='bt709')
+            .filter('tonemap', tonemap='hable', desat=0)
+            .filter('zscale', t='bt709', m='bt709', r='tv')
+            .output('pipe:', format='rawvideo', pix_fmt='rgb24',loglevel="quiet")
+            .compile()
+        )
+    else:   #bt709
+        args = (
+            ffmpeg
+            .input(in_filename,hwaccel='cuda',loglevel="quiet")
+            .output('pipe:', format='rawvideo', pix_fmt='rgb24',loglevel="quiet")
+            .compile()
+        )
+    return subprocess.Popen(args, stdout=subprocess.PIPE, creationflags=subprocess.CREATE_NO_WINDOW)
+
+
+def start_ffmpeg_process2(out_filename, width, height,fps):
+    args = (
+        ffmpeg
+        .input('pipe:', format='rawvideo', pix_fmt='rgb24', s='{}x{}'.format(width, height),r=fps,hwaccel='cuda',loglevel="quiet").video
+        .output(out_filename, movflags='faststart',pix_fmt='yuv420p',vcodec='hevc_nvenc',video_bitrate='11M',preset='slow',loglevel="quiet")
+        .overwrite_output()
+        .compile()
+    )
+    return subprocess.Popen(args, stdin=subprocess.PIPE, creationflags=subprocess.CREATE_NO_WINDOW)
+
+# def start_ffmpeg_process3(in_filename,audio_temp_filename):
+#     args = (
+#         ffmpeg
+#         .input(in_filename,loglevel="quiet").audio
+#         .output(audio_temp_filename,acodec='copy',loglevel="quiet").run(overwrite_output=True)
+#     )
+#     return subprocess.Popen(args, stdin=subprocess.PIPE, creationflags=subprocess.CREATE_NO_WINDOW)
+# def start_ffmpeg_process4(out_filename, video_temp_filename,audio_temp_filename):
+#     input_video=ffmpeg.input(video_temp_filename,loglevel="quiet")
+#     input_audio=ffmpeg.input(audio_temp_filename,loglevel="quiet")
+#     args2 = (
+#         ffmpeg.output( input_audio, input_video,out_filename,movflags='faststart',acodec='copy', vcodec='copy',format='mp4',loglevel="quiet").run(overwrite_output=True)
+#         )
+#     return subprocess.Popen(args2, stdin=subprocess.PIPE, creationflags=subprocess.CREATE_NO_WINDOW)
+
+def read_frame(process1, width, height):
+    # Note: RGB24 == 3 bytes per pixel.
+    frame_size = width * height * 3
+    in_bytes = process1.stdout.read(frame_size)
+    if len(in_bytes) == 0:
+        frame = None
+    else:
+        assert len(in_bytes) == frame_size
+        frame = (
+            np
+            .frombuffer(in_bytes, np.uint8)
+            .reshape([height, width, 3])
+        )
+    return frame
+
+
+def predict_frame(in_frame,w,h,model,score,device,rect_op):
+
+    out_frame=in_frame.copy()
+
+    results = model.predict(source=out_frame,conf=score,device=device,imgsz=w,show_labels=False,show_conf=False,show_boxes=False)
+
+    if len(results[0]) > 0:
+        for box in results[0].boxes:
+            xmin, ymin, xmax, ymax = map(int, box.xyxy[0])  # バウンディングボックスの座標
+            out_frame = cv2.rectangle(out_frame ,(xmin, ymin),(xmax, ymax),(0, 0, 0),-1)
+
+    for box_op in rect_op:
+        xmin, ymin, xmax, ymax = map(int, box_op)
+        out_frame = cv2.rectangle(out_frame ,(xmin, ymin),(xmax, ymax),(0, 0, 0),-1)
+
+    return out_frame
+
+def write_frame(process2, frame):
+    process2.stdin.write(
+        frame
+        .astype(np.uint8)
+        .tobytes()
+    )
 
 def apply_tone_mapping(hdr_image):
 
@@ -47,23 +150,10 @@ def apply_tone_mapping(hdr_image):
     ldr_image = np.clip(ldr_image * 255, 0, 255).astype(np.uint8)
     return ldr_image
 
-class WriteVideoProgress(proglog.ProgressBarLogger):
-    def __init__(self, progress, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.progress = progress
-
-    def callback(self, **changes):
-        pass
-
-    def bars_callback(self, bar, attr, value,old_value=None):
-        percentage = (value / self.bars[bar]['total'])
-        self.progress.value=percentage
-        self.progress.update()
-
 def main(page: ft.Page):
 
-    ver="ver.20240908A"
-    github_url="https://raw.githubusercontent.com/calocenrieti/WoLNamesBlackedOut/main/main.py"
+    if torch.cuda.is_available ==False:
+        sys.exit()
 
     logger = getLogger('ultralytics')
     logger.disabled = True
@@ -73,14 +163,7 @@ def main(page: ft.Page):
     model = YOLO(resource_path("my_yolov8n.yaml"))
     model = YOLO(resource_path("my_yolov8n.pt"))
 
-    cuda_dis=True
-
     rect_op=[]
-
-    if torch.cuda.device_count() > 0:
-        cuda_n=True
-    else:
-        cuda_n=False
 
     def update_check():
         try:
@@ -94,114 +177,88 @@ def main(page: ft.Page):
             pass
 
     #movie main
-    def video_main(video_in:str,video_out:str,device_cuda:bool,score:float,hdr:bool):
+    def video_main(in_filename, out_filename,score:float, process_frame):
 
-        if device_cuda == True:
-            device='cuda:0'
-        else:
-            device='cpu'
-
-        tm = cv2.TickMeter()
-        tm.reset()
         elapsed_i=0
 
         process_state=1 #output flag
 
-        cap = cv2.VideoCapture(video_in)
-        vfps = int(cap.get(cv2.CAP_PROP_FPS))
-        w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-        h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        video_temp_filename = 'tmp_wol_'+str(int(time.time()))+'.mp4'
+        audio_temp_filename = 'tmp_wol_'+str(int(time.time()))+'.m4a'
 
+        current_frame_number = 0  # 初期値
+        start = time.time()
 
-        fourcc = cv2.VideoWriter_fourcc(*'mp4v')    #when debug
+        width, height,vfps,frame_max ,color_primaries= get_video_size(in_filename)
+        process1 = start_ffmpeg_process1(in_filename,color_primaries)
+        process2 = start_ffmpeg_process2(video_temp_filename, width, height,vfps)
 
-        frame_max=int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        model = YOLO(resource_path("my_yolov8n.yaml"))
+        model = YOLO(resource_path("my_yolov8n.pt"))
 
-        temp_v_fd,video_temp_filename = tempfile.mkstemp(prefix='wol_',suffix='.mp4')
-        temp_a_fd,audio_temp_filename = tempfile.mkstemp(prefix='wol_',suffix='.mp3')
-
-        video_writer = cv2.VideoWriter(
-            video_temp_filename, fourcc, vfps,
-            (w, h))
-
-        # Loop through the video frames
-        while cap.isOpened():
-            tm.start()
-            # Read a frame from the video
-            success, frame = cap.read()
-            if success:
-                # Run YOLOv8 inference on the frame
-                if hdr==True:
-                    frame=apply_tone_mapping(frame)
-
-                results = model.predict(source=frame,conf=score,device=device,imgsz=w,show_labels=False,show_conf=False,show_boxes=False)
-
-                # the annotated frame
-                if len(results[0]) > 0:
-                    for box in results[0].boxes:
-                        xmin, ymin, xmax, ymax = map(int, box.xyxy[0])  # バウンディングボックスの座標
-                        frame = cv2.rectangle(frame ,(xmin, ymin),(xmax, ymax),(0, 0, 0),-1)
-                    for box_op in rect_op:
-                        xmin, ymin, xmax, ymax = map(int, box_op)
-                        frame = cv2.rectangle(frame ,(xmin, ymin),(xmax, ymax),(0, 0, 0),-1)
-
-                video_writer.write(frame)
-
-                tm.stop()
-                elapsed_i=tm.getTimeSec()
-                tm.start()
-
-                frame_progress.value=str(int(cap.get(cv2.CAP_PROP_POS_FRAMES)))+'/'+str(frame_max)
-                elapsed.value=str(format(elapsed_i,'.2f'))+'s'
-                fps.value = str(format(int(cap.get(cv2.CAP_PROP_POS_FRAMES)) / elapsed_i,'.2f'))
-                percentage = int(cap.get(cv2.CAP_PROP_POS_FRAMES))/frame_max
-                eta.value = str(int(elapsed_i * (1 - percentage) / percentage + 0.5))+'s'
-                pb.value=percentage
-                pb.update()
-                elapsed.update()
-                fps.update()
-                eta.update()
-                frame_progress.update()
-
-                if start_button.disabled == False:
-                        tm.stop()
-                        process_state=-1    #output cancel
-                        break
-            else:
+        while True:
+            in_frame = read_frame(process1, width, height)
+            if in_frame is None:
                 process_state=1
-                tm.stop()
                 break
 
-        if video_writer:
-            video_writer.release()
-        cap.release()
-        cv2.destroyAllWindows()
+            current_frame_number += 1
+
+            out_frame = process_frame(in_frame,width, height,model,score,'cuda:0',rect_op)
+            write_frame(process2, out_frame)
+
+            elapsed_i=time.time()-start
+            frame_progress.value=str(int(current_frame_number))+'/'+str(frame_max)
+            elapsed.value=str(format(elapsed_i,'.2f'))+'s'
+            fps.value = str(format(int(current_frame_number) / elapsed_i,'.2f'))
+            percentage = int(current_frame_number)/frame_max
+            eta.value = str(int(elapsed_i * (1 - percentage) / percentage + 0.5))+'s'
+            pb.value=percentage
+            pb.update()
+            elapsed.update()
+            fps.update()
+            eta.update()
+            frame_progress.update()
+
+            if start_button.disabled == False:
+                process_state=-1    #output cancel
+                process1.kill()
+                process2.kill()
+                break
+
+        process1.wait()
+
+        process2.stdin.close()
+        process2.wait()
 
         if process_state==1:
-            snack_bar_message("Video process finished. Audio process start...plz wait...")
+            snack_bar_message("Video process Finished. Audio process Start")
         elif process_state==-1:
-            shutil.copy(video_temp_filename, video_out)
             snack_bar_message("Video process Stopped.")
 
         if process_state==1:
             # audio track output
             page.add(image_ring)
-            clip_input = mp.VideoFileClip(video_in)
-            clip_input.audio.write_audiofile(audio_temp_filename,verbose=False, logger=None)
 
-            # audio track add
-            clip = mp.VideoFileClip(video_temp_filename).subclip()
-            if cuda_n==True:
-                clip.write_videofile(video_out, audio=audio_temp_filename,verbose=False,codec='hevc_nvenc', bitrate='11M', preset='slow',logger=WriteVideoProgress(pb))
-            else:
-                clip.write_videofile(video_out, audio=audio_temp_filename,verbose=False,logger=WriteVideoProgress(pb))
+            audio=(ffmpeg.input(in_filename,loglevel="quiet").audio)
+            ffmpeg.output(audio,audio_temp_filename,acodec='copy',loglevel="quiet").run(overwrite_output=True)
+            input_video=ffmpeg.input(video_temp_filename,loglevel="quiet")
+            input_audio=ffmpeg.input(audio_temp_filename,loglevel="quiet")
+            ffmpeg.output( input_audio, input_video,out_filename,movflags='faststart',acodec='copy', vcodec='copy',format='mp4',loglevel="quiet").run(overwrite_output=True)
+            # ret=start_ffmpeg_process3(in_filename,audio_temp_filename)
+            # ret=start_ffmpeg_process4(out_filename, video_temp_filename,audio_temp_filename)
+
             page.remove(image_ring)
 
             snack_bar_message("Movie Complete")
 
+        os.remove(video_temp_filename)
+        if process_state==1:
+            os.remove(audio_temp_filename)
+
         process_finished()
 
-    def image_main(video_in:str,frame:int,device_bool:bool,score:float,hdr:bool):
+    def image_main(video_in:str,frame:int,score:float):
 
         is_click = False
         x1=0
@@ -246,37 +303,35 @@ def main(page: ft.Page):
                 cv2.imshow('BlackedOutFrame',img_tmp)
                 snack_bar_message("Reset all the added squares")
 
-        if device_bool == True:
-            device='cuda:0'
-        else:
-            device='cpu'
 
         cap = cv2.VideoCapture(video_in)
+        width, height,vfps,frame_max ,color_primaries= get_video_size(video_in)
 
         if not cap.isOpened():
             return
 
-        w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-        h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        w = width
+        h = height
 
         cap.set(cv2.CAP_PROP_POS_FRAMES, frame)
 
         ret, frame = cap.read()
 
-        if hdr==True:
+
+        if color_primaries=='bt2020':
             frame=apply_tone_mapping(frame)
 
-        results = model.predict(source=frame,conf=score,device=device,imgsz=w,show_labels=False,show_conf=False,show_boxes=False)
+        results = model.predict(source=frame,conf=score,device='cuda:0',imgsz=w,show_labels=False,show_conf=False,show_boxes=False)
 
         # Display the annotated frame
         if len(results[0]) > 0:
             for box in results[0].boxes:
                 xmin, ymin, xmax, ymax = map(int, box.xyxy[0])  # bbox
                 frame = cv2.rectangle(frame ,(xmin, ymin),(xmax, ymax),(0, 0, 0),-1)
-            frame_op_add=frame.copy()
-            for box_op in rect_op:
-                xmin, ymin, xmax, ymax = map(int, box_op)
-                frame_op_add = cv2.rectangle(frame_op_add ,(xmin, ymin),(xmax, ymax),(0, 0, 0),-1)
+        frame_op_add=frame.copy()
+        for box_op in rect_op:
+            xmin, ymin, xmax, ymax = map(int, box_op)
+            frame_op_add = cv2.rectangle(frame_op_add ,(xmin, ymin),(xmax, ymax),(0, 0, 0),-1)
 
         img_tmp=frame_op_add.copy()
         img_tmp=cv2.resize(img_tmp,None,fx=resize_slider.value/100,fy=resize_slider.value/100)
@@ -308,7 +363,7 @@ def main(page: ft.Page):
         stop_button.disabled = False
         stop_button.icon_color=ft.colors.RED
         page.update()
-        video_main(selected_files.value,save_file_path.value,cuda_switch.value,float(slider_t.value),hdr_check.value)
+        video_main(selected_files.value,save_file_path.value,float(slider_t.value),predict_frame)
 
 
     def stop_clicked(e):
@@ -326,7 +381,7 @@ def main(page: ft.Page):
         start_button.disabled = True
         start_button.icon_color=''
         page.add(image_ring)
-        image_main(selected_files.value,int(frame_slider_t.value),cuda_switch.value,float(slider_t.value),hdr_check.value)
+        image_main(selected_files.value,int(frame_slider_t.value),float(slider_t.value))
         page.remove(image_ring)
         preview_button.disabled=False
         preview_button.icon_color=ft.colors.GREEN
@@ -385,6 +440,7 @@ def main(page: ft.Page):
     slider_t = ft.Text(value=f_score_init)
 
     def pick_files_result(e: ft.FilePickerResultEvent):
+        nonlocal rect_op
         selected_files.value = (
             ", ".join(map(lambda f: f.name, e.files)) if e.files else "Cancelled!"
         )
@@ -405,6 +461,7 @@ def main(page: ft.Page):
             preview_button.disabled=False
             preview_button.update()
             cap.release()
+            rect_op=[]
         else:
             video_frame_slider.disabled=True
             video_frame_slider.update()
@@ -451,12 +508,9 @@ def main(page: ft.Page):
 
     video_frame_slider=ft.Slider(min=0, max=1000, divisions=1000,width=300,disabled=True,on_change=frame_slider_change)
 
-    cuda_switch = ft.Checkbox(label="CUDA", value=cuda_n,disabled=cuda_dis)
     image_ring=ft.ProgressBar(color=ft.colors.LIGHT_BLUE_400)
 
-    hdr_check=ft.Checkbox(label="HDRtoSDR(Slow)", value=False)
-
-    resize_slider=ft.Slider(value=100,min=50, max=100,width=120, divisions=5, disabled=True,label="Resize {value}%")
+    resize_slider=ft.Slider(value=80,min=50, max=100,width=120, divisions=5, disabled=True,label="Resize {value}%")
 
     page.padding=10
     page.window.width=700
@@ -517,12 +571,12 @@ def main(page: ft.Page):
                 ]
                 ),
         ft.Row(controls=[
-                cuda_switch,
+                # cuda_switch,
                 ft.Text("  "),
                 ft.Text("Score Threshold"),
                 score_threshold_slider,
                 slider_t,
-                hdr_check,
+                # hdr_check,
                 ]
         ),
         ft.Divider(),

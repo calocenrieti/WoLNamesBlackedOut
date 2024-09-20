@@ -1,0 +1,24 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[[source]]
+url = "https://download.pytorch.org/whl/cu121"
+verify_ssl = true
+name = "downloadpytorch"
+
+[packages]
+flet = "*"
+torch = { index = "downloadpytorch"}
+torchvision = { index = "downloadpytorch"}
+pyinstaller = "*"
+numpy = "<2.0"
+ultralytics = "*"
+bs4 = "*"
+ffmpeg-python = "*"
+
+[dev-packages]
+
+[requires]
+python_version = "3.11"
