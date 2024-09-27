@@ -18,7 +18,7 @@ try:
 except:
     pass
 
-ver="ver.20240920"
+ver="ver.20240927"
 github_url="https://raw.githubusercontent.com/calocenrieti/WoLNamesBlackedOut/main/main.py"
 
 # 実行ファイルのパスの取得
@@ -33,16 +33,15 @@ def resource_path(relative_path):
     return os.path.join(os.path.abspath("."), relative_path)
 
 def get_video_size(filename):
-# def get_video_size(process,filename):
-    probe = ffmpeg.probe(filename,loglevel="quiet")
+    probe = ffmpeg.probe(filename)
     video_info = next(s for s in probe['streams'] if s['codec_type'] == 'video')
     width = int(video_info['width'])
     height = int(video_info['height'])
     fps = int(eval(video_info["r_frame_rate"]))
     frame_max=int(video_info["nb_frames"])
     color_primaries=video_info["color_primaries"]
-    # video_bitrate=int(video_info["bit_rate"])
     return width, height,fps,frame_max,color_primaries
+
 
 def start_ffmpeg_process1(in_filename,color_primaries):
     if color_primaries=='bt2020':
@@ -54,14 +53,16 @@ def start_ffmpeg_process1(in_filename,color_primaries):
             .filter('zscale', p='bt709')
             .filter('tonemap', tonemap='hable', desat=0)
             .filter('zscale', t='bt709', m='bt709', r='tv')
-            .output('pipe:', format='rawvideo', pix_fmt='rgb24',loglevel="quiet")
+            .output('pipe:', format='rawvideo', pix_fmt='bgr24',loglevel="quiet")
+            .overwrite_output()
             .compile()
         )
     else:   #bt709
         args = (
             ffmpeg
             .input(in_filename,hwaccel='cuda',loglevel="quiet")
-            .output('pipe:', format='rawvideo', pix_fmt='rgb24',loglevel="quiet")
+            .output('pipe:', format='rawvideo', pix_fmt='bgr24',loglevel="quiet")
+            .overwrite_output()
             .compile()
         )
     return subprocess.Popen(args, stdout=subprocess.PIPE, creationflags=subprocess.CREATE_NO_WINDOW)
@@ -70,27 +71,12 @@ def start_ffmpeg_process1(in_filename,color_primaries):
 def start_ffmpeg_process2(out_filename, width, height,fps):
     args = (
         ffmpeg
-        .input('pipe:', format='rawvideo', pix_fmt='rgb24', s='{}x{}'.format(width, height),r=fps,hwaccel='cuda',loglevel="quiet").video
+        .input('pipe:', format='rawvideo', pix_fmt='bgr24', s='{}x{}'.format(width, height),r=fps,hwaccel='cuda',loglevel="quiet").video
         .output(out_filename, movflags='faststart',pix_fmt='yuv420p',vcodec='hevc_nvenc',video_bitrate='11M',preset='slow',loglevel="quiet")
         .overwrite_output()
         .compile()
     )
     return subprocess.Popen(args, stdin=subprocess.PIPE, creationflags=subprocess.CREATE_NO_WINDOW)
-
-# def start_ffmpeg_process3(in_filename,audio_temp_filename):
-#     args = (
-#         ffmpeg
-#         .input(in_filename,loglevel="quiet").audio
-#         .output(audio_temp_filename,acodec='copy',loglevel="quiet").run(overwrite_output=True)
-#     )
-#     return subprocess.Popen(args, stdin=subprocess.PIPE, creationflags=subprocess.CREATE_NO_WINDOW)
-# def start_ffmpeg_process4(out_filename, video_temp_filename,audio_temp_filename):
-#     input_video=ffmpeg.input(video_temp_filename,loglevel="quiet")
-#     input_audio=ffmpeg.input(audio_temp_filename,loglevel="quiet")
-#     args2 = (
-#         ffmpeg.output( input_audio, input_video,out_filename,movflags='faststart',acodec='copy', vcodec='copy',format='mp4',loglevel="quiet").run(overwrite_output=True)
-#         )
-#     return subprocess.Popen(args2, stdin=subprocess.PIPE, creationflags=subprocess.CREATE_NO_WINDOW)
 
 def read_frame(process1, width, height):
     # Note: RGB24 == 3 bytes per pixel.
@@ -177,21 +163,53 @@ def main(page: ft.Page):
             pass
 
     #movie main
-    def video_main(in_filename, out_filename,score:float, process_frame):
+    def video_main(in_filename, out_filename,score:float, process_frame,start_time,end_time):
 
         elapsed_i=0
+        trim_skip=False
 
         process_state=1 #output flag
 
-        video_temp_filename = 'tmp_wol_'+str(int(time.time()))+'.mp4'
+        video_temp_filename_1 = 'tmp_wol_'+str(int(time.time()))+'_1.mp4'
+        video_temp_filename_2 = 'tmp_wol_'+str(int(time.time()))+'_2.mp4'
         audio_temp_filename = 'tmp_wol_'+str(int(time.time()))+'.m4a'
+
+        width, height,vfps,frame_max ,color_primaries= get_video_size(in_filename)
+
+        all_sec=int(frame_max//vfps)
+
+        if start_time != 0 or end_time != all_sec:
+            snack_bar_message("Video Trimming...")
+            page.add(ffmpeg_info_text)
+
+            stream = (
+                ffmpeg
+                .input(in_filename, ss=start_time, t=end_time-start_time,hwaccel='cuda')
+                .output(video_temp_filename_1,vcodec='copy',acodec='copy',format='mp4',video_bitrate='11M',preset='slow',loglevel="quiet")
+                .overwrite_output()
+                .compile()
+                )
+            process0=subprocess.Popen(stream, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,creationflags=subprocess.CREATE_NO_WINDOW,universal_newlines=True)
+            for line in process0.stdout:
+                ffmpeg_info_text.value=line
+                ffmpeg_info_text.update()
+            process0.wait()
+            page.remove(ffmpeg_info_text)
+        else:
+            trim_skip=True
+
+        snack_bar_message("WolNamesBlackedOut...")
 
         current_frame_number = 0  # 初期値
         start = time.time()
 
-        width, height,vfps,frame_max ,color_primaries= get_video_size(in_filename)
-        process1 = start_ffmpeg_process1(in_filename,color_primaries)
-        process2 = start_ffmpeg_process2(video_temp_filename, width, height,vfps)
+        if trim_skip==True:
+            video_1=in_filename
+        else:
+            video_1=video_temp_filename_1
+
+        process1 = start_ffmpeg_process1(video_1,color_primaries)
+        process2 = start_ffmpeg_process2(video_temp_filename_2, width, height,vfps)
 
         model = YOLO(resource_path("my_yolov8n.yaml"))
         model = YOLO(resource_path("my_yolov8n.pt"))
@@ -208,10 +226,10 @@ def main(page: ft.Page):
             write_frame(process2, out_frame)
 
             elapsed_i=time.time()-start
-            frame_progress.value=str(int(current_frame_number))+'/'+str(frame_max)
+            frame_progress.value=str(int(current_frame_number))+'/'+str(vfps*(end_time-start_time))
             elapsed.value=str(format(elapsed_i,'.2f'))+'s'
             fps.value = str(format(int(current_frame_number) / elapsed_i,'.2f'))
-            percentage = int(current_frame_number)/frame_max
+            percentage = int(current_frame_number)/(vfps*(end_time-start_time))
             eta.value = str(int(elapsed_i * (1 - percentage) / percentage + 0.5))+'s'
             pb.value=percentage
             pb.update()
@@ -240,19 +258,34 @@ def main(page: ft.Page):
             # audio track output
             page.add(image_ring)
 
-            audio=(ffmpeg.input(in_filename,loglevel="quiet").audio)
-            ffmpeg.output(audio,audio_temp_filename,acodec='copy',loglevel="quiet").run(overwrite_output=True)
-            input_video=ffmpeg.input(video_temp_filename,loglevel="quiet")
-            input_audio=ffmpeg.input(audio_temp_filename,loglevel="quiet")
-            ffmpeg.output( input_audio, input_video,out_filename,movflags='faststart',acodec='copy', vcodec='copy',format='mp4',loglevel="quiet").run(overwrite_output=True)
-            # ret=start_ffmpeg_process3(in_filename,audio_temp_filename)
-            # ret=start_ffmpeg_process4(out_filename, video_temp_filename,audio_temp_filename)
+            audio=(
+                ffmpeg
+                .input(in_filename,loglevel="quiet")
+                .audio
+                )
+            stream=ffmpeg.output(audio,audio_temp_filename,acodec='copy',loglevel="quiet").overwrite_output().compile()
+            p1=subprocess.Popen(stream, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,creationflags=subprocess.CREATE_NO_WINDOW)
+            try:
+                result = p1.communicate(timeout=1)
+                # print(p1.returncode)
+            except subprocess.TimeoutExpired:
+                p1.kill()
+            input_video=ffmpeg.input(video_temp_filename_2,loglevel="quiet")
+            input_audio=ffmpeg.input(audio_temp_filename, ss=start_time, t=end_time-start_time,loglevel="quiet")
+            stream=ffmpeg.output( input_audio, input_video,out_filename,movflags='faststart',acodec='copy', vcodec='copy',format='mp4',loglevel="quiet").overwrite_output().compile()
+            p2=subprocess.Popen(stream, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,creationflags=subprocess.CREATE_NO_WINDOW)
+            try:
+                result = p2.communicate(timeout=1)
+            except subprocess.TimeoutExpired:
+                p2.kill()
 
             page.remove(image_ring)
 
             snack_bar_message("Movie Complete")
 
-        os.remove(video_temp_filename)
+        if trim_skip==False:
+            os.remove(video_temp_filename_1)
+        os.remove(video_temp_filename_2)
         if process_state==1:
             os.remove(audio_temp_filename)
 
@@ -303,7 +336,6 @@ def main(page: ft.Page):
                 cv2.imshow('BlackedOutFrame',img_tmp)
                 snack_bar_message("Reset all the added squares")
 
-
         cap = cv2.VideoCapture(video_in)
         width, height,vfps,frame_max ,color_primaries= get_video_size(video_in)
 
@@ -316,7 +348,6 @@ def main(page: ft.Page):
         cap.set(cv2.CAP_PROP_POS_FRAMES, frame)
 
         ret, frame = cap.read()
-
 
         if color_primaries=='bt2020':
             frame=apply_tone_mapping(frame)
@@ -363,7 +394,7 @@ def main(page: ft.Page):
         stop_button.disabled = False
         stop_button.icon_color=ft.colors.RED
         page.update()
-        video_main(selected_files.value,save_file_path.value,float(slider_t.value),predict_frame)
+        video_main(selected_files.value,save_file_path.value,float(slider_t.value),predict_frame, int(frame_range_slider_start_min.value)*60+int(frame_range_slider_start_sec.value) , int(frame_range_slider_end_min.value)*60+int(frame_range_slider_end_sec.value))
 
 
     def stop_clicked(e):
@@ -435,7 +466,8 @@ def main(page: ft.Page):
         video_frame_slider.value=int(e.control.value)
         video_frame_slider.update()
 
-    frame_slider_t = ft.TextField(label='Frame',border="none",width=60,on_change=frame_textfield_change)
+    frame_slider_t = ft.TextField(label='Frame',value=0,width=80,input_filter=ft.NumbersOnlyInputFilter(),on_change=frame_textfield_change)
+    frame_max_t=ft.Text(value='/ 0')
 
     slider_t = ft.Text(value=f_score_init)
 
@@ -446,20 +478,49 @@ def main(page: ft.Page):
         )
         if e.files or selected_files.value != "Cancelled!":
             selected_files.value=e.files[0].path
+            width, height,vfps,frame_max ,color_primaries= get_video_size(selected_files.value)
             cap = cv2.VideoCapture(selected_files.value)
             video_frame_slider.max=int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
             video_frame_slider.divisions=int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
             video_frame_slider.disabled=False
             video_frame_slider.value=0
             video_frame_slider.update()
+            all_sec=int(frame_max//vfps)
+            mod_frame=float(frame_max%vfps)
+            if mod_frame>0:
+                mod_frame_sec=1
+            else:
+                mod_frame_sec=0
+            all_min=int(all_sec//60)
+            mod_sec=int(all_sec-all_min*60)+mod_frame_sec
+            if mod_sec==60:
+                all_min=all_min+1
+                mod_sec=0
+            frame_range_slider_start_min.value=0
+            frame_range_slider_start_sec.value=0
+            frame_range_slider_start_sec.update()
+            frame_range_slider_start_min.update()
+            frame_range_slider_end_min.value=all_min
+            frame_range_slider_end_sec.value=mod_sec
+            frame_range_slider_end_sec.update()
+            frame_range_slider_end_min.update()
             frame_slider_t.value=0
             frame_slider_t.update()
+            frame_max_t.value='/ '+str(frame_max)
+            frame_max_t.update()
             resize_slider.disabled=False
             resize_slider.update()
             start_button.disabled=False
             start_button.update()
             preview_button.disabled=False
             preview_button.update()
+            fps.value='0.00s'
+            eta.value='0.00s'
+            elapsed.value='0.00s'
+            frame_progress.value='0000/0000'
+            fps.update()
+            eta.update()
+            elapsed.update()
             cap.release()
             rect_op=[]
         else:
@@ -496,6 +557,46 @@ def main(page: ft.Page):
         action="Alright!",
     )
 
+    def frame_range_start_min_change(e):
+        if e.control.value=='':
+            e.control.value=0
+            e.control.update()
+        if int(frame_range_slider_start_min.value)*60+int(frame_range_slider_start_sec.value) > int(frame_range_slider_end_min.value)*60+int(frame_range_slider_end_sec.value):
+            start_button.disabled=True
+        else:
+            start_button.disabled=False
+        start_button.update()
+
+    def frame_range_start_sec_change(e):
+        if e.control.value=='':
+            e.control.value=0
+            e.control.update()
+        if int(frame_range_slider_start_min.value)*60+int(frame_range_slider_start_sec.value) > int(frame_range_slider_end_min.value)*60+int(frame_range_slider_end_sec.value):
+            start_button.disabled=True
+        else:
+            start_button.disabled=False
+        start_button.update()
+
+    def frame_range_end_min_change(e):
+        if e.control.value=='':
+            e.control.value=0
+            e.control.update()
+        if int(frame_range_slider_start_min.value)*60+int(frame_range_slider_start_sec.value) > int(frame_range_slider_end_min.value)*60+int(frame_range_slider_end_sec.value):
+            start_button.disabled=True
+        else:
+            start_button.disabled=False
+        start_button.update()
+
+    def frame_range_end_sec_change(e):
+        if e.control.value=='':
+            e.control.value=0
+            e.control.update()
+        if int(frame_range_slider_start_min.value)*60+int(frame_range_slider_start_sec.value) > int(frame_range_slider_end_min.value)*60+int(frame_range_slider_end_sec.value):
+            start_button.disabled=True
+        else:
+            start_button.disabled=False
+        start_button.update()
+
     def snack_bar_message(e):
         page.snack_bar = ft.SnackBar(ft.Text(e))
         page.snack_bar.open = True
@@ -509,12 +610,17 @@ def main(page: ft.Page):
     video_frame_slider=ft.Slider(min=0, max=1000, divisions=1000,width=300,disabled=True,on_change=frame_slider_change)
 
     image_ring=ft.ProgressBar(color=ft.colors.LIGHT_BLUE_400)
+    ffmpeg_info_text=ft.Text(value='test')
 
     resize_slider=ft.Slider(value=80,min=50, max=100,width=120, divisions=5, disabled=True,label="Resize {value}%")
+    frame_range_slider_start_min = ft.TextField(label='Start_min',value=0,width=80,read_only=False,input_filter=ft.NumbersOnlyInputFilter(),on_change=frame_range_start_min_change)
+    frame_range_slider_start_sec = ft.TextField(label='Start_sec',value=0,width=80,read_only=False,input_filter=ft.NumbersOnlyInputFilter(),on_change=frame_range_start_sec_change)
+    frame_range_slider_end_min = ft.TextField(label='End_min',value=0,width=80,read_only=False,input_filter=ft.NumbersOnlyInputFilter(),on_change=frame_range_end_min_change)
+    frame_range_slider_end_sec = ft.TextField(label='End_sec',value=0,width=80,read_only=False,input_filter=ft.NumbersOnlyInputFilter(),on_change=frame_range_end_sec_change)
 
     page.padding=10
     page.window.width=700
-    page.window.height=700
+    page.window.height=750
     page.window.title_bar_hidden = True
     page.window.title_bar_buttons_hidden = True
 
@@ -538,7 +644,7 @@ def main(page: ft.Page):
         ),
         ft.Row(controls=
             [
-                ft.Text("  Select File", theme_style=ft.TextThemeStyle.BODY_LARGE),
+                ft.Text("Select File", theme_style=ft.TextThemeStyle.BODY_LARGE),
             ]
             ),
         ft.Row(controls=
@@ -571,12 +677,10 @@ def main(page: ft.Page):
                 ]
                 ),
         ft.Row(controls=[
-                # cuda_switch,
                 ft.Text("  "),
                 ft.Text("Score Threshold"),
                 score_threshold_slider,
                 slider_t,
-                # hdr_check,
                 ]
         ),
         ft.Divider(),
@@ -591,12 +695,13 @@ def main(page: ft.Page):
                 ft.Text(" Video frame"),
                 video_frame_slider,
                 frame_slider_t,
-                resize_slider,
+                frame_max_t,
                 ]
         ),
         ft.Row(controls=
             [
                 preview_button,
+                resize_slider,
             ]
             ),
         ft.Divider(),
@@ -605,6 +710,18 @@ def main(page: ft.Page):
                 ft.Text("  Movie rendering", theme_style=ft.TextThemeStyle.BODY_LARGE),
                 ]
                 ),
+        ft.Row(controls=
+            [
+                frame_range_slider_start_min,
+                ft.Text(":"),
+                frame_range_slider_start_sec,
+                ft.Text(" - "),
+                frame_range_slider_end_min,
+                ft.Text(":"),
+                frame_range_slider_end_sec,
+
+                ]
+            ),
         ft.Row(controls=
             [
                 start_button,
