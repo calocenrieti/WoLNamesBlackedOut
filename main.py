@@ -18,7 +18,7 @@ try:
 except:
     pass
 
-ver="ver.20240927"
+ver="ver.20241006"
 github_url="https://raw.githubusercontent.com/calocenrieti/WoLNamesBlackedOut/main/main.py"
 
 # 実行ファイルのパスの取得
@@ -97,17 +97,20 @@ def read_frame(process1, width, height):
 def predict_frame(in_frame,w,h,model,score,device,rect_op):
 
     out_frame=in_frame.copy()
+    rsz_frame=in_frame.copy()
 
-    results = model.predict(source=out_frame,conf=score,device=device,imgsz=w,show_labels=False,show_conf=False,show_boxes=False)
+    rsz_frame=cv2.resize(rsz_frame,None,fx=0.5,fy=0.5,interpolation=cv2.INTER_LINEAR)
+
+    results = model.predict(source=rsz_frame,conf=score,device=device,imgsz=int(w*0.5),show_labels=False,show_conf=False,show_boxes=False)
 
     if len(results[0]) > 0:
         for box in results[0].boxes:
             xmin, ymin, xmax, ymax = map(int, box.xyxy[0])  # バウンディングボックスの座標
-            out_frame = cv2.rectangle(out_frame ,(xmin, ymin),(xmax, ymax),(0, 0, 0),-1)
+            out_frame = cv2.rectangle(out_frame ,(int(xmin*(1/0.5)), int(ymin*(1/0.5))),(int(xmax*(1/0.5)), int(ymax*(1/0.5))),(0, 0, 0),-1)
 
     for box_op in rect_op:
-        xmin, ymin, xmax, ymax = map(int, box_op)
-        out_frame = cv2.rectangle(out_frame ,(xmin, ymin),(xmax, ymax),(0, 0, 0),-1)
+        xmin_op, ymin_op, xmax_op, ymax_op = map(int, box_op)
+        out_frame = cv2.rectangle(out_frame ,(xmin_op, ymin_op),(xmax_op, ymax_op),(0, 0, 0),-1)
 
     return out_frame
 
@@ -177,6 +180,12 @@ def main(page: ft.Page):
         width, height,vfps,frame_max ,color_primaries= get_video_size(in_filename)
 
         all_sec=int(frame_max//vfps)
+        mod_frame=float(frame_max%vfps)
+        if mod_frame>0:
+            mod_frame_sec=1
+        else:
+            mod_frame_sec=0
+        all_sec=all_sec+mod_frame_sec
 
         if start_time != 0 or end_time != all_sec:
             snack_bar_message("Video Trimming...")
@@ -185,7 +194,7 @@ def main(page: ft.Page):
             stream = (
                 ffmpeg
                 .input(in_filename, ss=start_time, t=end_time-start_time,hwaccel='cuda')
-                .output(video_temp_filename_1,vcodec='copy',acodec='copy',format='mp4',video_bitrate='11M',preset='slow',loglevel="quiet")
+                .output(video_temp_filename_1,vcodec='copy',acodec='copy',format='mp4',video_bitrate='11M',preset='slow')
                 .overwrite_output()
                 .compile()
                 )
@@ -210,9 +219,6 @@ def main(page: ft.Page):
 
         process1 = start_ffmpeg_process1(video_1,color_primaries)
         process2 = start_ffmpeg_process2(video_temp_filename_2, width, height,vfps)
-
-        model = YOLO(resource_path("my_yolov8n.yaml"))
-        model = YOLO(resource_path("my_yolov8n.pt"))
 
         while True:
             in_frame = read_frame(process1, width, height)
@@ -254,29 +260,55 @@ def main(page: ft.Page):
         elif process_state==-1:
             snack_bar_message("Video process Stopped.")
 
+        page.add(ffmpeg_info_text)
+
         if process_state==1:
             # audio track output
             page.add(image_ring)
 
             audio=(
                 ffmpeg
-                .input(in_filename,loglevel="quiet")
+                .input(in_filename)
                 .audio
                 )
-            stream=ffmpeg.output(audio,audio_temp_filename,acodec='copy',loglevel="quiet").overwrite_output().compile()
-            p1=subprocess.Popen(stream, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,creationflags=subprocess.CREATE_NO_WINDOW)
+            stream=ffmpeg.output(audio,audio_temp_filename,acodec='copy').overwrite_output().compile()
+            p1=subprocess.Popen(stream, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,creationflags=subprocess.CREATE_NO_WINDOW,universal_newlines=True)
+            for line in p1.stdout:
+                ffmpeg_info_text.value=line
+                ffmpeg_info_text.update()
             try:
                 result = p1.communicate(timeout=1)
-                # print(p1.returncode)
             except subprocess.TimeoutExpired:
+                pass
+            else:
                 p1.kill()
-            input_video=ffmpeg.input(video_temp_filename_2,loglevel="quiet")
-            input_audio=ffmpeg.input(audio_temp_filename, ss=start_time, t=end_time-start_time,loglevel="quiet")
-            stream=ffmpeg.output( input_audio, input_video,out_filename,movflags='faststart',acodec='copy', vcodec='copy',format='mp4',loglevel="quiet").overwrite_output().compile()
-            p2=subprocess.Popen(stream, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,creationflags=subprocess.CREATE_NO_WINDOW)
+
+            input_video=ffmpeg.input(video_temp_filename_2)
+            if trim_skip==True:
+                input_audio=(
+                    ffmpeg.input(audio_temp_filename)
+                    )
+                stream=ffmpeg.output( input_audio, input_video.video,out_filename,movflags='faststart',acodec='copy', vcodec='copy',format='mp4').overwrite_output().compile()
+            else:
+                input_audio=(
+                    ffmpeg.input(audio_temp_filename)
+                    .filter('atrim', start=start_time, end=end_time,)
+                    .filter('asetpts', 'PTS-STARTPTS')
+                    )
+                stream=ffmpeg.output( input_audio, input_video.video,out_filename,movflags='faststart', vcodec='hevc_nvenc',format='mp4',video_bitrate='11M',preset='slow').overwrite_output().compile()
+
+            p2=subprocess.Popen(stream, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,creationflags=subprocess.CREATE_NO_WINDOW,universal_newlines=True)
+
+            for line in p2.stdout:
+                ffmpeg_info_text.value=line
+                ffmpeg_info_text.update()
+            page.remove(ffmpeg_info_text)
+
             try:
                 result = p2.communicate(timeout=1)
             except subprocess.TimeoutExpired:
+                pass
+            else:
                 p2.kill()
 
             page.remove(image_ring)
@@ -352,13 +384,16 @@ def main(page: ft.Page):
         if color_primaries=='bt2020':
             frame=apply_tone_mapping(frame)
 
-        results = model.predict(source=frame,conf=score,device='cuda:0',imgsz=w,show_labels=False,show_conf=False,show_boxes=False)
+        rsz_frame=frame.copy()
+        rsz_frame=cv2.resize(rsz_frame,None,fx=0.5,fy=0.5,interpolation=cv2.INTER_LINEAR)
+
+        results = model.predict(source=rsz_frame,conf=score,device='cuda:0',imgsz=int(w*0.5),show_labels=False,show_conf=False,show_boxes=False)
 
         # Display the annotated frame
         if len(results[0]) > 0:
             for box in results[0].boxes:
                 xmin, ymin, xmax, ymax = map(int, box.xyxy[0])  # bbox
-                frame = cv2.rectangle(frame ,(xmin, ymin),(xmax, ymax),(0, 0, 0),-1)
+                frame = cv2.rectangle(frame ,(int(xmin*(1/0.5)), int(ymin*(1/0.5))),(int(xmax*(1/0.5)), int(ymax*(1/0.5))),(0, 0, 0),-1)
         frame_op_add=frame.copy()
         for box_op in rect_op:
             xmin, ymin, xmax, ymax = map(int, box_op)
@@ -610,7 +645,7 @@ def main(page: ft.Page):
     video_frame_slider=ft.Slider(min=0, max=1000, divisions=1000,width=300,disabled=True,on_change=frame_slider_change)
 
     image_ring=ft.ProgressBar(color=ft.colors.LIGHT_BLUE_400)
-    ffmpeg_info_text=ft.Text(value='test')
+    ffmpeg_info_text=ft.Text(value=' ')
 
     resize_slider=ft.Slider(value=80,min=50, max=100,width=120, divisions=5, disabled=True,label="Resize {value}%")
     frame_range_slider_start_min = ft.TextField(label='Start_min',value=0,width=80,read_only=False,input_filter=ft.NumbersOnlyInputFilter(),on_change=frame_range_start_min_change)
@@ -620,7 +655,7 @@ def main(page: ft.Page):
 
     page.padding=10
     page.window.width=700
-    page.window.height=750
+    page.window.height=780
     page.window.title_bar_hidden = True
     page.window.title_bar_buttons_hidden = True
 
