@@ -18,7 +18,7 @@ try:
 except:
     pass
 
-ver="ver.20241006"
+ver="ver.20241008"
 github_url="https://raw.githubusercontent.com/calocenrieti/WoLNamesBlackedOut/main/main.py"
 
 # 実行ファイルのパスの取得
@@ -658,6 +658,7 @@ def main(page: ft.Page):
     page.window.height=780
     page.window.title_bar_hidden = True
     page.window.title_bar_buttons_hidden = True
+    page.window.icon="WoLNamesBlackedOut.ico"
 
     page.scroll = ft.ScrollMode.AUTO
 
