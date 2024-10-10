@@ -18,7 +18,7 @@ try:
 except:
     pass
 
-ver="ver.20241010"
+ver="ver.20241010A"
 github_url="https://raw.githubusercontent.com/calocenrieti/WoLNamesBlackedOut/main/main.py"
 
 # 実行ファイルのパスの取得
@@ -396,7 +396,7 @@ def main(page: ft.Page):
         rsz_frame=frame.copy()
         rsz_frame=cv2.resize(rsz_frame,None,fx=0.5,fy=0.5,interpolation=cv2.INTER_LINEAR)
 
-        results = model.predict(source=rsz_frame,conf=score,device='cuda:0',imgsz=int(w*0.5),show_labels=False,show_conf=False,show_boxes=False)
+        results = model.predict(source=rsz_frame,conf=score,device=0,imgsz=int(w*0.5),show_labels=False,show_conf=False,show_boxes=False)
 
         # Display the annotated frame
         if len(results[0]) > 0:
