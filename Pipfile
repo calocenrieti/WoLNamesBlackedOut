@@ -17,6 +17,7 @@ numpy = "<2.0"
 ultralytics = "*"
 bs4 = "*"
 ffmpeg-python = "*"
+onnxruntime = "*"
 
 [dev-packages]
 

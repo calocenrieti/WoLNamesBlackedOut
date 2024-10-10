@@ -7,7 +7,7 @@ from ultralytics import YOLO
 import sys
 from logging import getLogger
 import flet as ft
-import torch
+from torch.cuda import is_available as cuda_is_available
 import webbrowser
 from bs4 import BeautifulSoup
 import requests
@@ -18,7 +18,7 @@ try:
 except:
     pass
 
-ver="ver.20241008"
+ver="ver.20241010"
 github_url="https://raw.githubusercontent.com/calocenrieti/WoLNamesBlackedOut/main/main.py"
 
 # 実行ファイルのパスの取得
@@ -31,6 +31,15 @@ def resource_path(relative_path):
     if hasattr(sys, '_MEIPASS'):
         return os.path.join(sys._MEIPASS, relative_path)
     return os.path.join(os.path.abspath("."), relative_path)
+
+if cuda_is_available ==False:
+    model = YOLO(resource_path("my_yolov8n.onnx"))  #AMD
+    codec = "hevc_amf"
+    hwaccel= "d3d11va"
+else:
+    model = YOLO(resource_path("my_yolov8n.pt"))    #NVIDIA
+    codec = "hevc_nvenc"
+    hwaccel= "cuda"
 
 def get_video_size(filename):
     probe = ffmpeg.probe(filename)
@@ -47,7 +56,7 @@ def start_ffmpeg_process1(in_filename,color_primaries):
     if color_primaries=='bt2020':
         args = (
             ffmpeg
-            .input(in_filename,hwaccel='cuda',loglevel="quiet")
+            .input(in_filename,hwaccel=hwaccel,loglevel="quiet")
             .video.filter('zscale', t='linear', npl=100)
             .filter('format', pix_fmts='gbrpf32le')
             .filter('zscale', p='bt709')
@@ -60,7 +69,7 @@ def start_ffmpeg_process1(in_filename,color_primaries):
     else:   #bt709
         args = (
             ffmpeg
-            .input(in_filename,hwaccel='cuda',loglevel="quiet")
+            .input(in_filename,hwaccel=hwaccel,loglevel="quiet")
             .output('pipe:', format='rawvideo', pix_fmt='bgr24',loglevel="quiet")
             .overwrite_output()
             .compile()
@@ -71,8 +80,8 @@ def start_ffmpeg_process1(in_filename,color_primaries):
 def start_ffmpeg_process2(out_filename, width, height,fps):
     args = (
         ffmpeg
-        .input('pipe:', format='rawvideo', pix_fmt='bgr24', s='{}x{}'.format(width, height),r=fps,hwaccel='cuda',loglevel="quiet").video
-        .output(out_filename, movflags='faststart',pix_fmt='yuv420p',vcodec='hevc_nvenc',video_bitrate='11M',preset='slow',loglevel="quiet")
+        .input('pipe:', format='rawvideo', pix_fmt='bgr24', s='{}x{}'.format(width, height),r=fps,hwaccel=hwaccel,loglevel="quiet").video
+        .output(out_filename, movflags='faststart',pix_fmt='yuv420p',vcodec=codec,video_bitrate='11M',preset='slow',loglevel="quiet")
         .overwrite_output()
         .compile()
     )
@@ -141,16 +150,16 @@ def apply_tone_mapping(hdr_image):
 
 def main(page: ft.Page):
 
-    if torch.cuda.is_available ==False:
-        sys.exit()
+
+
 
     logger = getLogger('ultralytics')
     logger.disabled = True
 
     f_score_init=0.20
 
-    model = YOLO(resource_path("my_yolov8n.yaml"))
-    model = YOLO(resource_path("my_yolov8n.pt"))
+    # model = YOLO(resource_path("my_yolov8n.yaml"))
+
 
     rect_op=[]
 
@@ -193,7 +202,7 @@ def main(page: ft.Page):
 
             stream = (
                 ffmpeg
-                .input(in_filename, ss=start_time, t=end_time-start_time,hwaccel='cuda')
+                .input(in_filename, ss=start_time, t=end_time-start_time,hwaccel=hwaccel)
                 .output(video_temp_filename_1,vcodec='copy',acodec='copy',format='mp4',video_bitrate='11M',preset='slow')
                 .overwrite_output()
                 .compile()
@@ -228,7 +237,7 @@ def main(page: ft.Page):
 
             current_frame_number += 1
 
-            out_frame = process_frame(in_frame,width, height,model,score,'cuda:0',rect_op)
+            out_frame = process_frame(in_frame,width, height,model,score,0,rect_op)
             write_frame(process2, out_frame)
 
             elapsed_i=time.time()-start
@@ -295,7 +304,7 @@ def main(page: ft.Page):
                     .filter('atrim', start=start_time, end=end_time,)
                     .filter('asetpts', 'PTS-STARTPTS')
                     )
-                stream=ffmpeg.output( input_audio, input_video.video,out_filename,movflags='faststart', vcodec='hevc_nvenc',format='mp4',video_bitrate='11M',preset='slow').overwrite_output().compile()
+                stream=ffmpeg.output( input_audio, input_video.video,out_filename,movflags='faststart', vcodec=codec,format='mp4',video_bitrate='11M',preset='slow').overwrite_output().compile()
 
             p2=subprocess.Popen(stream, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,creationflags=subprocess.CREATE_NO_WINDOW,universal_newlines=True)
 
@@ -658,7 +667,6 @@ def main(page: ft.Page):
     page.window.height=780
     page.window.title_bar_hidden = True
     page.window.title_bar_buttons_hidden = True
-    page.window.icon="WoLNamesBlackedOut.ico"
 
     page.scroll = ft.ScrollMode.AUTO
 
