@@ -4,7 +4,7 @@ a = Analysis(
     ['main.py'],
     pathex=[],
     binaries=[],
-    datas=[('my_yolov8n.pt','.'),('my_yolov8n.yaml','.'),],
+    datas=[('my_yolov8n.pt','.'),('my_yolov8n.onnx','.'),('C_SQUARE_ENIX.png','.'),('WoLNamesBlackedOut.ico','.'),],
     hiddenimports=[],
     hookspath=['./hooks'],
     hooksconfig={},
@@ -23,11 +23,11 @@ exe = EXE(
     [],
     exclude_binaries=True,
     name='WoLNamesBlackedOut',
-    debug=False,
+    debug=False,     #
     bootloader_ignore_signals=False,
     strip=False,
     upx=True,
-    console=False,
+    console=False,   #
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,

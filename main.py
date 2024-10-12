@@ -18,7 +18,7 @@ try:
 except:
     pass
 
-ver="ver.20241010A"
+ver="ver.20241012"
 github_url="https://raw.githubusercontent.com/calocenrieti/WoLNamesBlackedOut/main/main.py"
 
 # 実行ファイルのパスの取得
@@ -40,6 +40,8 @@ else:
     model = YOLO(resource_path("my_yolov8n.pt"))    #NVIDIA
     codec = "hevc_nvenc"
     hwaccel= "cuda"
+
+c_sqex_image=cv2.imread(resource_path('C_SQUARE_ENIX.png'))
 
 def get_video_size(filename):
     probe = ffmpeg.probe(filename)
@@ -103,7 +105,7 @@ def read_frame(process1, width, height):
     return frame
 
 
-def predict_frame(in_frame,w,h,model,score,device,rect_op):
+def predict_frame(in_frame,w,h,model,score,device,rect_op,copyright):
 
     out_frame=in_frame.copy()
     rsz_frame=in_frame.copy()
@@ -116,7 +118,8 @@ def predict_frame(in_frame,w,h,model,score,device,rect_op):
         for box in results[0].boxes:
             xmin, ymin, xmax, ymax = map(int, box.xyxy[0])  # バウンディングボックスの座標
             out_frame = cv2.rectangle(out_frame ,(int(xmin*(1/0.5)), int(ymin*(1/0.5))),(int(xmax*(1/0.5)), int(ymax*(1/0.5))),(0, 0, 0),-1)
-
+    if copyright==True:
+        out_frame=put_C_SQUARE_ENIX(out_frame,w,h)
     for box_op in rect_op:
         xmin_op, ymin_op, xmax_op, ymax_op = map(int, box_op)
         out_frame = cv2.rectangle(out_frame ,(xmin_op, ymin_op),(xmax_op, ymax_op),(0, 0, 0),-1)
@@ -129,6 +132,12 @@ def write_frame(process2, frame):
         .astype(np.uint8)
         .tobytes()
     )
+def put_C_SQUARE_ENIX(img,w,h):
+    dy=h-41
+    dx=w-220
+    image_h, image_w = 31,200
+    img[dy:dy+image_h, dx:dx+image_w] = c_sqex_image
+    return img
 
 def apply_tone_mapping(hdr_image):
 
@@ -150,16 +159,10 @@ def apply_tone_mapping(hdr_image):
 
 def main(page: ft.Page):
 
-
-
-
     logger = getLogger('ultralytics')
     logger.disabled = True
 
     f_score_init=0.20
-
-    # model = YOLO(resource_path("my_yolov8n.yaml"))
-
 
     rect_op=[]
 
@@ -175,12 +178,12 @@ def main(page: ft.Page):
             pass
 
     #movie main
-    def video_main(in_filename, out_filename,score:float, process_frame,start_time,end_time):
+    def video_main(in_filename, out_filename,score:float, process_frame,start_time,end_time,copyright:bool):
 
         elapsed_i=0
         trim_skip=False
 
-        process_state=1 #output flag
+        process_state=0 #output flag
 
         video_temp_filename_1 = 'tmp_wol_'+str(int(time.time()))+'_1.mp4'
         video_temp_filename_2 = 'tmp_wol_'+str(int(time.time()))+'_2.mp4'
@@ -237,7 +240,7 @@ def main(page: ft.Page):
 
             current_frame_number += 1
 
-            out_frame = process_frame(in_frame,width, height,model,score,0,rect_op)
+            out_frame = process_frame(in_frame,width, height,model,score,0,rect_op,copyright)
             write_frame(process2, out_frame)
 
             elapsed_i=time.time()-start
@@ -332,7 +335,7 @@ def main(page: ft.Page):
 
         process_finished()
 
-    def image_main(video_in:str,frame:int,score:float):
+    def image_main(video_in:str,frame:int,score:float,copyright:bool):
 
         is_click = False
         x1=0
@@ -403,6 +406,8 @@ def main(page: ft.Page):
             for box in results[0].boxes:
                 xmin, ymin, xmax, ymax = map(int, box.xyxy[0])  # bbox
                 frame = cv2.rectangle(frame ,(int(xmin*(1/0.5)), int(ymin*(1/0.5))),(int(xmax*(1/0.5)), int(ymax*(1/0.5))),(0, 0, 0),-1)
+        if copyright==True:
+            frame=put_C_SQUARE_ENIX(frame,w,h)
         frame_op_add=frame.copy()
         for box_op in rect_op:
             xmin, ymin, xmax, ymax = map(int, box_op)
@@ -422,12 +427,16 @@ def main(page: ft.Page):
         start_button.icon_color=ft.colors.BLUE
         stop_button.disabled = True
         stop_button.icon_color=''
-        start_button.update()
-        stop_button.update()
         preview_button.disabled=False
         preview_button.icon_color=ft.colors.GREEN
         pb.value=0
         frame_progress.value='0000/0000'
+        check_copyright.disabled=False
+        score_threshold_slider.disabled=False
+        save_file_path.disabled=False
+        selected_files.disabled=False
+        resize_slider.disabled=False
+        video_frame_slider.disabled=False
         page.update()
 
     def start_clicked(e):
@@ -437,8 +446,14 @@ def main(page: ft.Page):
         preview_button.icon_color=''
         stop_button.disabled = False
         stop_button.icon_color=ft.colors.RED
+        check_copyright.disabled=True
+        score_threshold_slider.disabled=True
+        save_file_path.disabled=True
+        selected_files.disabled=True
+        resize_slider.disabled=True
+        video_frame_slider.disabled=True
         page.update()
-        video_main(selected_files.value,save_file_path.value,float(slider_t.value),predict_frame, int(frame_range_slider_start_min.value)*60+int(frame_range_slider_start_sec.value) , int(frame_range_slider_end_min.value)*60+int(frame_range_slider_end_sec.value))
+        video_main(selected_files.value,save_file_path.value,float(slider_t.value),predict_frame, int(frame_range_slider_start_min.value)*60+int(frame_range_slider_start_sec.value) , int(frame_range_slider_end_min.value)*60+int(frame_range_slider_end_sec.value),check_copyright.value)
 
 
     def stop_clicked(e):
@@ -456,7 +471,7 @@ def main(page: ft.Page):
         start_button.disabled = True
         start_button.icon_color=''
         page.add(image_ring)
-        image_main(selected_files.value,int(frame_slider_t.value),float(slider_t.value))
+        image_main(selected_files.value,int(frame_slider_t.value),float(slider_t.value),check_copyright.value)
         page.remove(image_ring)
         preview_button.disabled=False
         preview_button.icon_color=ft.colors.GREEN
@@ -650,6 +665,7 @@ def main(page: ft.Page):
     page.overlay.extend([pick_files_dialog, save_file_dialog])
 
     score_threshold_slider=ft.Slider(min=0, max=0.5, value=f_score_init,divisions=50,on_change=slider_change)
+    check_copyright=ft.Checkbox(label="Add Copyright", value=True)
 
     video_frame_slider=ft.Slider(min=0, max=1000, divisions=1000,width=300,disabled=True,on_change=frame_slider_change)
 
@@ -667,6 +683,7 @@ def main(page: ft.Page):
     page.window.height=780
     page.window.title_bar_hidden = True
     page.window.title_bar_buttons_hidden = True
+    page.window.icon=resource_path("WoLNamesBlackedOut.ico")
 
     page.scroll = ft.ScrollMode.AUTO
 
@@ -680,7 +697,6 @@ def main(page: ft.Page):
                         ft.PopupMenuItem(text="Git Hub",on_click=url_click_2),
                         ft.PopupMenuItem(),
                         ft.PopupMenuItem(text=ver),
-
                     ]
                 ),
                 ft.IconButton(ft.icons.CLOSE, on_click=lambda _: page.window.close())
@@ -698,7 +714,8 @@ def main(page: ft.Page):
                     icon=ft.icons.UPLOAD_FILE,
                     on_click=lambda _: pick_files_dialog.pick_files(
                         allow_multiple=False,
-                        file_type=ft.FilePickerFileType.VIDEO
+                        file_type=ft.FilePickerFileType.VIDEO,
+                        allowed_extensions=["mp4"]
                     ),
                 ),
                 selected_files,
@@ -725,6 +742,8 @@ def main(page: ft.Page):
                 ft.Text("Score Threshold"),
                 score_threshold_slider,
                 slider_t,
+                ft.Text("  "),
+                check_copyright,
                 ]
         ),
         ft.Divider(),
