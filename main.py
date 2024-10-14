@@ -12,13 +12,14 @@ import webbrowser
 from bs4 import BeautifulSoup
 import requests
 import time
+from flet_contrib.color_picker import ColorPicker
 
 try:
     import pyi_splash
 except:
     pass
 
-ver="ver.20241012"
+ver="ver.20241014"
 github_url="https://raw.githubusercontent.com/calocenrieti/WoLNamesBlackedOut/main/main.py"
 
 # 実行ファイルのパスの取得
@@ -105,8 +106,13 @@ def read_frame(process1, width, height):
     return frame
 
 
-def predict_frame(in_frame,w,h,model,score,device,rect_op,copyright):
-
+def predict_frame(in_frame,w,h,model,score,device,rect_op,copyright,name_color,fixwin_color):
+    name_color_r=int(name_color[1:3],base=16)
+    name_color_g=int(name_color[3:5],base=16)
+    name_color_b=int(name_color[5:],base=16)
+    fixwin_color_r=int(fixwin_color[1:3],base=16)
+    fixwin_color_g=int(fixwin_color[3:5],base=16)
+    fixwin_color_b=int(fixwin_color[5:],base=16)
     out_frame=in_frame.copy()
     rsz_frame=in_frame.copy()
 
@@ -117,12 +123,12 @@ def predict_frame(in_frame,w,h,model,score,device,rect_op,copyright):
     if len(results[0]) > 0:
         for box in results[0].boxes:
             xmin, ymin, xmax, ymax = map(int, box.xyxy[0])  # バウンディングボックスの座標
-            out_frame = cv2.rectangle(out_frame ,(int(xmin*(1/0.5)), int(ymin*(1/0.5))),(int(xmax*(1/0.5)), int(ymax*(1/0.5))),(0, 0, 0),-1)
+            out_frame = cv2.rectangle(out_frame ,(int(xmin*(1/0.5)), int(ymin*(1/0.5))),(int(xmax*(1/0.5)), int(ymax*(1/0.5))),(name_color_b, name_color_g, name_color_r),-1)
     if copyright==True:
         out_frame=put_C_SQUARE_ENIX(out_frame,w,h)
     for box_op in rect_op:
         xmin_op, ymin_op, xmax_op, ymax_op = map(int, box_op)
-        out_frame = cv2.rectangle(out_frame ,(xmin_op, ymin_op),(xmax_op, ymax_op),(0, 0, 0),-1)
+        out_frame = cv2.rectangle(out_frame ,(xmin_op, ymin_op),(xmax_op, ymax_op),(fixwin_color_b, fixwin_color_g, fixwin_color_r),-1)
 
     return out_frame
 
@@ -178,7 +184,7 @@ def main(page: ft.Page):
             pass
 
     #movie main
-    def video_main(in_filename, out_filename,score:float, process_frame,start_time,end_time,copyright:bool):
+    def video_main(in_filename, out_filename,score:float, process_frame,start_time,end_time,copyright:bool,name_color:str,fixwin_color:str):
 
         elapsed_i=0
         trim_skip=False
@@ -240,7 +246,7 @@ def main(page: ft.Page):
 
             current_frame_number += 1
 
-            out_frame = process_frame(in_frame,width, height,model,score,0,rect_op,copyright)
+            out_frame = process_frame(in_frame,width, height,model,score,0,rect_op,copyright,name_color,fixwin_color)
             write_frame(process2, out_frame)
 
             elapsed_i=time.time()-start
@@ -335,7 +341,13 @@ def main(page: ft.Page):
 
         process_finished()
 
-    def image_main(video_in:str,frame:int,score:float,copyright:bool):
+    def image_main(video_in:str,frame:int,score:float,copyright:bool,name_color:str,fixwin_color:str):
+        name_color_r=int(name_color[1:3],base=16)
+        name_color_g=int(name_color[3:5],base=16)
+        name_color_b=int(name_color[5:],base=16)
+        fixwin_color_r=int(fixwin_color[1:3],base=16)
+        fixwin_color_g=int(fixwin_color[3:5],base=16)
+        fixwin_color_b=int(fixwin_color[5:],base=16)
 
         is_click = False
         x1=0
@@ -360,7 +372,7 @@ def main(page: ft.Page):
 
             if event == cv2.EVENT_LBUTTONUP:
                 if is_click==True:
-                    cv2.rectangle(img_tmp,(x1,y1),(x,y),(0,0,0),-1)
+                    cv2.rectangle(img_tmp,(x1,y1),(x,y),(fixwin_color_b,fixwin_color_g,fixwin_color_r),-1)
                     cv2.imshow('BlackedOutFrame',img_tmp)
                     is_click=False
                     rect_op.append([int(mag*x1),int(mag*y1),int(mag*x),int(mag*y)])
@@ -405,13 +417,13 @@ def main(page: ft.Page):
         if len(results[0]) > 0:
             for box in results[0].boxes:
                 xmin, ymin, xmax, ymax = map(int, box.xyxy[0])  # bbox
-                frame = cv2.rectangle(frame ,(int(xmin*(1/0.5)), int(ymin*(1/0.5))),(int(xmax*(1/0.5)), int(ymax*(1/0.5))),(0, 0, 0),-1)
+                frame = cv2.rectangle(frame ,(int(xmin*(1/0.5)), int(ymin*(1/0.5))),(int(xmax*(1/0.5)), int(ymax*(1/0.5))),(name_color_b, name_color_g, name_color_r),-1)
         if copyright==True:
             frame=put_C_SQUARE_ENIX(frame,w,h)
         frame_op_add=frame.copy()
         for box_op in rect_op:
             xmin, ymin, xmax, ymax = map(int, box_op)
-            frame_op_add = cv2.rectangle(frame_op_add ,(xmin, ymin),(xmax, ymax),(0, 0, 0),-1)
+            frame_op_add = cv2.rectangle(frame_op_add ,(xmin, ymin),(xmax, ymax),(fixwin_color_b,fixwin_color_g, fixwin_color_r),-1)
 
         img_tmp=frame_op_add.copy()
         img_tmp=cv2.resize(img_tmp,None,fx=resize_slider.value/100,fy=resize_slider.value/100)
@@ -452,8 +464,10 @@ def main(page: ft.Page):
         selected_files.disabled=True
         resize_slider.disabled=True
         video_frame_slider.disabled=True
+        pcname_color.disabled=True
+        fixwindow_color.disabled=True
         page.update()
-        video_main(selected_files.value,save_file_path.value,float(slider_t.value),predict_frame, int(frame_range_slider_start_min.value)*60+int(frame_range_slider_start_sec.value) , int(frame_range_slider_end_min.value)*60+int(frame_range_slider_end_sec.value),check_copyright.value)
+        video_main(selected_files.value,save_file_path.value,float(slider_t.value),predict_frame, int(frame_range_slider_start_min.value)*60+int(frame_range_slider_start_sec.value) , int(frame_range_slider_end_min.value)*60+int(frame_range_slider_end_sec.value),check_copyright.value,str(pcname_color.icon_color),str(fixwindow_color.icon_color))
 
 
     def stop_clicked(e):
@@ -463,6 +477,8 @@ def main(page: ft.Page):
         start_button.icon_color=ft.colors.BLUE
         preview_button.disabled=False
         preview_button.icon_color=ft.colors.GREEN
+        pcname_color.disabled=False
+        fixwindow_color.disabled=False
         page.update()
 
     def preview_clicked(e):
@@ -471,7 +487,7 @@ def main(page: ft.Page):
         start_button.disabled = True
         start_button.icon_color=''
         page.add(image_ring)
-        image_main(selected_files.value,int(frame_slider_t.value),float(slider_t.value),check_copyright.value)
+        image_main(selected_files.value,int(frame_slider_t.value),float(slider_t.value),check_copyright.value,str(pcname_color.icon_color),str(fixwindow_color.icon_color))
         page.remove(image_ring)
         preview_button.disabled=False
         preview_button.icon_color=ft.colors.GREEN
@@ -661,6 +677,7 @@ def main(page: ft.Page):
         page.snack_bar.open = True
         page.update()
 
+
     update_check()
     page.overlay.extend([pick_files_dialog, save_file_dialog])
 
@@ -678,9 +695,73 @@ def main(page: ft.Page):
     frame_range_slider_end_min = ft.TextField(label='End_min',value=0,width=80,read_only=False,input_filter=ft.NumbersOnlyInputFilter(),on_change=frame_range_end_min_change)
     frame_range_slider_end_sec = ft.TextField(label='End_sec',value=0,width=80,read_only=False,input_filter=ft.NumbersOnlyInputFilter(),on_change=frame_range_end_sec_change)
 
+    def pcname_color_icon():
+
+        async def open_color_picker(e):
+            e.control.page.dialog = d
+            d.open = True
+            e.control.page.update()
+
+        color_picker = ColorPicker(color="#c8df6f", width=300)
+        color_button = ft.ElevatedButton("BlackedOut_color",icon=ft.icons.BRUSH,icon_color='#000000',on_click=open_color_picker)
+
+        async def change_color(e):
+            color_button.icon_color = color_picker.color
+            d.open = False
+            e.control.page.update()
+
+        async def close_dialog(e):
+            d.open = False
+            d.update()
+
+        d = ft.AlertDialog(
+            content=color_picker,
+            actions=[
+                ft.TextButton("OK", on_click=change_color),
+                ft.TextButton("Cancel", on_click=close_dialog),
+            ],
+            actions_alignment=ft.MainAxisAlignment.END,
+            on_dismiss=change_color,
+        )
+
+        return color_button
+
+    def fixwindow_color_icon():
+
+        async def open_color_picker(e):
+            e.control.page.dialog = d
+            d.open = True
+            e.control.page.update()
+
+        color_picker = ColorPicker(color="#c8df6f", width=300)
+        color_button = ft.ElevatedButton("FixWindow_color",icon=ft.icons.BRUSH,icon_color='#000000',on_click=open_color_picker)
+
+        async def change_color(e):
+            color_button.icon_color = color_picker.color
+            d.open = False
+            e.control.page.update()
+
+        async def close_dialog(e):
+            d.open = False
+            d.update()
+
+        d = ft.AlertDialog(
+            content=color_picker,
+            actions=[
+                ft.TextButton("OK", on_click=change_color),
+                ft.TextButton("Cancel", on_click=close_dialog),
+            ],
+            actions_alignment=ft.MainAxisAlignment.END,
+            on_dismiss=change_color,
+        )
+
+        return color_button
+    pcname_color = pcname_color_icon()
+    fixwindow_color = fixwindow_color_icon()
+
     page.padding=10
     page.window.width=700
-    page.window.height=780
+    page.window.height=830
     page.window.title_bar_hidden = True
     page.window.title_bar_buttons_hidden = True
     page.window.icon=resource_path("WoLNamesBlackedOut.ico")
@@ -704,7 +785,7 @@ def main(page: ft.Page):
         ),
         ft.Row(controls=
             [
-                ft.Text("Select File", theme_style=ft.TextThemeStyle.BODY_LARGE),
+                ft.Text("  Select File", theme_style=ft.TextThemeStyle.BODY_LARGE),
             ]
             ),
         ft.Row(controls=
@@ -738,12 +819,17 @@ def main(page: ft.Page):
                 ]
                 ),
         ft.Row(controls=[
-                ft.Text("  "),
+                # ft.Text("  "),
                 ft.Text("Score Threshold"),
                 score_threshold_slider,
                 slider_t,
                 ft.Text("  "),
                 check_copyright,
+                ]
+        ),
+        ft.Row(controls=[
+                pcname_color,
+                fixwindow_color,
                 ]
         ),
         ft.Divider(),
@@ -754,7 +840,6 @@ def main(page: ft.Page):
                 ),
         ft.Row(controls=
             [
-                # preview_button,
                 ft.Text(" Video frame"),
                 video_frame_slider,
                 frame_slider_t,
@@ -782,14 +867,12 @@ def main(page: ft.Page):
                 frame_range_slider_end_min,
                 ft.Text(":"),
                 frame_range_slider_end_sec,
-
                 ]
             ),
         ft.Row(controls=
             [
                 start_button,
                 stop_button,
-
                 ]
             ),
         ft.Row(controls=
