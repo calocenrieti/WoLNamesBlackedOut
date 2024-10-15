@@ -19,7 +19,7 @@ try:
 except:
     pass
 
-ver="ver.20241014"
+ver="ver.20241015"
 github_url="https://raw.githubusercontent.com/calocenrieti/WoLNamesBlackedOut/main/main.py"
 
 # 実行ファイルのパスの取得
@@ -107,12 +107,7 @@ def read_frame(process1, width, height):
 
 
 def predict_frame(in_frame,w,h,model,score,device,rect_op,copyright,name_color,fixwin_color):
-    name_color_r=int(name_color[1:3],base=16)
-    name_color_g=int(name_color[3:5],base=16)
-    name_color_b=int(name_color[5:],base=16)
-    fixwin_color_r=int(fixwin_color[1:3],base=16)
-    fixwin_color_g=int(fixwin_color[3:5],base=16)
-    fixwin_color_b=int(fixwin_color[5:],base=16)
+
     out_frame=in_frame.copy()
     rsz_frame=in_frame.copy()
 
@@ -123,12 +118,12 @@ def predict_frame(in_frame,w,h,model,score,device,rect_op,copyright,name_color,f
     if len(results[0]) > 0:
         for box in results[0].boxes:
             xmin, ymin, xmax, ymax = map(int, box.xyxy[0])  # バウンディングボックスの座標
-            out_frame = cv2.rectangle(out_frame ,(int(xmin*(1/0.5)), int(ymin*(1/0.5))),(int(xmax*(1/0.5)), int(ymax*(1/0.5))),(name_color_b, name_color_g, name_color_r),-1)
+            out_frame = cv2.rectangle(out_frame ,(int(xmin*(1/0.5)), int(ymin*(1/0.5))),(int(xmax*(1/0.5)), int(ymax*(1/0.5))),name_color,-1)
     if copyright==True:
         out_frame=put_C_SQUARE_ENIX(out_frame,w,h)
     for box_op in rect_op:
         xmin_op, ymin_op, xmax_op, ymax_op = map(int, box_op)
-        out_frame = cv2.rectangle(out_frame ,(xmin_op, ymin_op),(xmax_op, ymax_op),(fixwin_color_b, fixwin_color_g, fixwin_color_r),-1)
+        out_frame = cv2.rectangle(out_frame ,(xmin_op, ymin_op),(xmax_op, ymax_op),fixwin_color,-1)
 
     return out_frame
 
@@ -184,7 +179,7 @@ def main(page: ft.Page):
             pass
 
     #movie main
-    def video_main(in_filename, out_filename,score:float, process_frame,start_time,end_time,copyright:bool,name_color:str,fixwin_color:str):
+    def video_main(in_filename, out_filename,score:float, process_frame,start_time,end_time,copyright:bool,name_color,fixwin_color):
 
         elapsed_i=0
         trim_skip=False
@@ -449,6 +444,8 @@ def main(page: ft.Page):
         selected_files.disabled=False
         resize_slider.disabled=False
         video_frame_slider.disabled=False
+        pcname_color.disabled=False
+        fixwindow_color.disabled=False
         page.update()
 
     def start_clicked(e):
@@ -467,7 +464,15 @@ def main(page: ft.Page):
         pcname_color.disabled=True
         fixwindow_color.disabled=True
         page.update()
-        video_main(selected_files.value,save_file_path.value,float(slider_t.value),predict_frame, int(frame_range_slider_start_min.value)*60+int(frame_range_slider_start_sec.value) , int(frame_range_slider_end_min.value)*60+int(frame_range_slider_end_sec.value),check_copyright.value,str(pcname_color.icon_color),str(fixwindow_color.icon_color))
+        name_color_r=int(str(pcname_color.icon_color)[1:3],base=16)
+        name_color_g=int(str(pcname_color.icon_color)[3:5],base=16)
+        name_color_b=int(str(pcname_color.icon_color)[5:],base=16)
+        fixwin_color_r=int(str(fixwindow_color.icon_color)[1:3],base=16)
+        fixwin_color_g=int(str(fixwindow_color.icon_color)[3:5],base=16)
+        fixwin_color_b=int(str(fixwindow_color.icon_color)[5:],base=16)
+        pcname_color_bgr=(name_color_b,name_color_g,name_color_r)
+        fixwin_color_bgr=(fixwin_color_b,fixwin_color_g,fixwin_color_r)
+        video_main(selected_files.value,save_file_path.value,float(slider_t.value),predict_frame, int(frame_range_slider_start_min.value)*60+int(frame_range_slider_start_sec.value) , int(frame_range_slider_end_min.value)*60+int(frame_range_slider_end_sec.value),check_copyright.value,pcname_color_bgr,fixwin_color_bgr)
 
 
     def stop_clicked(e):
@@ -486,13 +491,18 @@ def main(page: ft.Page):
         preview_button.icon_color=''
         start_button.disabled = True
         start_button.icon_color=''
+        pcname_color.disabled=True
+        fixwindow_color.disabled=True
         page.add(image_ring)
+        page.update()
         image_main(selected_files.value,int(frame_slider_t.value),float(slider_t.value),check_copyright.value,str(pcname_color.icon_color),str(fixwindow_color.icon_color))
         page.remove(image_ring)
         preview_button.disabled=False
         preview_button.icon_color=ft.colors.GREEN
         start_button.disabled = False
         start_button.icon_color=ft.colors.BLUE
+        pcname_color.disabled=False
+        fixwindow_color.disabled=False
         page.update()
 
     #ProgressBar

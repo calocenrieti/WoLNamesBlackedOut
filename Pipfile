@@ -18,6 +18,8 @@ ultralytics = "*"
 bs4 = "*"
 ffmpeg-python = "*"
 onnxruntime = "*"
+torchaudio = {version = "*", index = "downloadpytorch"}
+flet-contrib = "*"
 
 [dev-packages]
 
