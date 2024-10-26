@@ -4,7 +4,7 @@ a = Analysis(
     ['main.py'],
     pathex=[],
     binaries=[],
-    datas=[('my_yolov8n.pt','.'),('my_yolov8n.onnx','.'),('C_SQUARE_ENIX.png','.'),('WoLNamesBlackedOut.ico','.'),],
+    datas=[('my_yolov8m.pt','.'),('my_yolov8m.onnx','.'),('C_SQUARE_ENIX.png','.'),('WoLNamesBlackedOut.ico','.'),],
     hiddenimports=[],
     hookspath=['./hooks'],
     hooksconfig={},

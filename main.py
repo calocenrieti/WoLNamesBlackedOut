@@ -19,7 +19,7 @@ try:
 except:
     pass
 
-ver="ver.20241015"
+ver="ver.20241026"
 github_url="https://raw.githubusercontent.com/calocenrieti/WoLNamesBlackedOut/main/main.py"
 
 # 実行ファイルのパスの取得
@@ -34,11 +34,11 @@ def resource_path(relative_path):
     return os.path.join(os.path.abspath("."), relative_path)
 
 if cuda_is_available ==False:
-    model = YOLO(resource_path("my_yolov8n.onnx"))  #AMD
+    model = YOLO(resource_path("my_yolov8m.onnx"))  #AMD
     codec = "hevc_amf"
     hwaccel= "d3d11va"
 else:
-    model = YOLO(resource_path("my_yolov8n.pt"))    #NVIDIA
+    model = YOLO(resource_path("my_yolov8m.pt"))    #NVIDIA
     codec = "hevc_nvenc"
     hwaccel= "cuda"
 
@@ -705,7 +705,7 @@ def main(page: ft.Page):
     frame_range_slider_end_min = ft.TextField(label='End_min',value=0,width=80,read_only=False,input_filter=ft.NumbersOnlyInputFilter(),on_change=frame_range_end_min_change)
     frame_range_slider_end_sec = ft.TextField(label='End_sec',value=0,width=80,read_only=False,input_filter=ft.NumbersOnlyInputFilter(),on_change=frame_range_end_sec_change)
 
-    def pcname_color_icon():
+    def color_icon(button_name:str):
 
         async def open_color_picker(e):
             e.control.page.dialog = d
@@ -713,7 +713,7 @@ def main(page: ft.Page):
             e.control.page.update()
 
         color_picker = ColorPicker(color="#c8df6f", width=300)
-        color_button = ft.ElevatedButton("BlackedOut_color",icon=ft.icons.BRUSH,icon_color='#000000',on_click=open_color_picker)
+        color_button = ft.ElevatedButton(text=button_name,icon=ft.icons.BRUSH,icon_color='#000000',on_click=open_color_picker)
 
         async def change_color(e):
             color_button.icon_color = color_picker.color
@@ -736,38 +736,9 @@ def main(page: ft.Page):
 
         return color_button
 
-    def fixwindow_color_icon():
 
-        async def open_color_picker(e):
-            e.control.page.dialog = d
-            d.open = True
-            e.control.page.update()
-
-        color_picker = ColorPicker(color="#c8df6f", width=300)
-        color_button = ft.ElevatedButton("FixWindow_color",icon=ft.icons.BRUSH,icon_color='#000000',on_click=open_color_picker)
-
-        async def change_color(e):
-            color_button.icon_color = color_picker.color
-            d.open = False
-            e.control.page.update()
-
-        async def close_dialog(e):
-            d.open = False
-            d.update()
-
-        d = ft.AlertDialog(
-            content=color_picker,
-            actions=[
-                ft.TextButton("OK", on_click=change_color),
-                ft.TextButton("Cancel", on_click=close_dialog),
-            ],
-            actions_alignment=ft.MainAxisAlignment.END,
-            on_dismiss=change_color,
-        )
-
-        return color_button
-    pcname_color = pcname_color_icon()
-    fixwindow_color = fixwindow_color_icon()
+    pcname_color = color_icon("BlackedOut_color")
+    fixwindow_color = color_icon("FixWindow_color")
 
     page.padding=10
     page.window.width=700
