@@ -33,8 +33,8 @@ ffmpegについてはexe化ではコピーしておらず、手でdist以下に�
 ## Ultralytics YOLOv8での学習
 以下を参考に学習しています。
 https://docs.ultralytics.com/modes/train/#key-features-of-train-mode
-
-```python:yolo_train.py
+yolo_train.py
+```python:
 import os
 os.environ['KMP_DUPLICATE_LIB_OK']='TRUE'   #エラー対策
 
@@ -50,13 +50,15 @@ if __name__ == "__main__":
     results = model.val()
 ```
 認識する物体はユーザ名の1つでよかったので、1つに編集しています。
-```python:my_yolov8m.yaml（抜粋）
+my_yolov8m.yaml（抜粋）
+```python:
 # Parameters
 # nc: 80 # number of classes
 nc: 1 # number of classes
 ```
 画像とアノテーションのフォルダ指定。coco形式であったものをyolo形式に変換していたため、このようなフォルダ名になっています。環境に合わせて指定ください。
-```python:data.yaml
+data.yaml
+```python:
 path: D:\coco_converted # dataset root directory
 train: images/train2017 # training images (relative to 'path')
 val: images/val2017 # validation images (relative to 'path')
