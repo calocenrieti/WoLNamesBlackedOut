@@ -11,7 +11,9 @@ EXE化には、pyinstallerを利用させていただいています。<br>
 Windows11<br>
 NVIDIA Geforce 2060以上を推奨（CUDA、NVENC利用）<br>
 AMD Radeonでも動作すると思われる。未確認（ONNX、AMF利用）<br>
-Python3.11
+Python3.11<br>
+Windowsでの実行EXEファイルのダウンロードはこちらから<br>
+[ダウンロード](https://download-count-gpemgma5enb6cqe6.japaneast-01.azurewebsites.net/download_WoLNamesBlackedOut.php)
 
 ## コード利用上の注意点
 次のファイルはファイルサイズ制限の問題から、githubではダミーファイルを置いています。
