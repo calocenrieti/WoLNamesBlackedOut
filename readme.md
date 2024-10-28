@@ -21,7 +21,7 @@ Windowsでの実行EXEファイルのダウンロードはこちらから<br>
 + my_yolov8m.onnx
 
 ファイルが必要であれば、googleドライブよりダウンロード願います。<br>
-[ダウンロード](https://drive.google.com/file/d/1Zn-xFeVihrsS4u0FfmTWbXrvBMFs4o8b/view?usp=drive_link)
+[ダウンロード](https://download-count-gpemgma5enb6cqe6.japaneast-01.azurewebsites.net/download.php)
 
 ffmpegのバイナリ（./ffmpeg/bin/）もファイルサイズ制限からgithubにありません。<br>
 必要であれば、次のアドレスからダウンロードください。<br>
