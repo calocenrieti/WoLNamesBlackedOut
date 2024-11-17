@@ -19,7 +19,7 @@ try:
 except:
     pass
 
-ver="ver.20241026"
+ver="ver.20241117"
 github_url="https://raw.githubusercontent.com/calocenrieti/WoLNamesBlackedOut/main/main.py"
 
 # 実行ファイルのパスの取得
@@ -33,14 +33,16 @@ def resource_path(relative_path):
         return os.path.join(sys._MEIPASS, relative_path)
     return os.path.join(os.path.abspath("."), relative_path)
 
-if cuda_is_available ==False:
-    model = YOLO(resource_path("my_yolov8m.onnx"))  #AMD
-    codec = "hevc_amf"
-    hwaccel= "d3d11va"
-else:
-    model = YOLO(resource_path("my_yolov8m.pt"))    #NVIDIA
-    codec = "hevc_nvenc"
-    hwaccel= "cuda"
+def gpu_model_codec_hwaccel():
+    if cuda_is_available ==False:
+        model = YOLO(resource_path("my_yolov8m.onnx"))  #AMD
+        codec = "hevc_amf"
+        hwaccel= "d3d11va"
+    else:
+        model = YOLO(resource_path("my_yolov8m.pt"))    #NVIDIA
+        codec = "hevc_nvenc"
+        hwaccel= "cuda"
+    return model,codec,hwaccel
 
 c_sqex_image=cv2.imread(resource_path('C_SQUARE_ENIX.png'))
 
@@ -55,7 +57,7 @@ def get_video_size(filename):
     return width, height,fps,frame_max,color_primaries
 
 
-def start_ffmpeg_process1(in_filename,color_primaries):
+def start_ffmpeg_process1(in_filename,color_primaries,hwaccel):
     if color_primaries=='bt2020':
         args = (
             ffmpeg
@@ -80,7 +82,7 @@ def start_ffmpeg_process1(in_filename,color_primaries):
     return subprocess.Popen(args, stdout=subprocess.PIPE, creationflags=subprocess.CREATE_NO_WINDOW)
 
 
-def start_ffmpeg_process2(out_filename, width, height,fps):
+def start_ffmpeg_process2(out_filename, width, height,fps,hwaccel,codec):
     args = (
         ffmpeg
         .input('pipe:', format='rawvideo', pix_fmt='bgr24', s='{}x{}'.format(width, height),r=fps,hwaccel=hwaccel,loglevel="quiet").video
@@ -106,19 +108,25 @@ def read_frame(process1, width, height):
     return frame
 
 
-def predict_frame(in_frame,w,h,model,score,device,rect_op,copyright,name_color,fixwin_color):
+def predict_frame(in_frame,w,h,model,score,device,rect_op,copyright,name_color,fixwin_color,inpaint):
 
     out_frame=in_frame.copy()
-    rsz_frame=in_frame.copy()
+    if inpaint==True:
+        mask_frame = np.zeros((*out_frame.shape[:-1],1), dtype=np.uint8)
 
-    rsz_frame=cv2.resize(rsz_frame,None,fx=0.5,fy=0.5,interpolation=cv2.INTER_LINEAR)
-
-    results = model.predict(source=rsz_frame,conf=score,device=device,imgsz=int(w*0.5),show_labels=False,show_conf=False,show_boxes=False)
+    results = model.predict(source=out_frame,conf=score,device=device,imgsz=1280,show_labels=False,show_conf=False,show_boxes=False,augment=False,stream_buffer=False)
 
     if len(results[0]) > 0:
-        for box in results[0].boxes:
-            xmin, ymin, xmax, ymax = map(int, box.xyxy[0])  # バウンディングボックスの座標
-            out_frame = cv2.rectangle(out_frame ,(int(xmin*(1/0.5)), int(ymin*(1/0.5))),(int(xmax*(1/0.5)), int(ymax*(1/0.5))),name_color,-1)
+        if inpaint==True:
+            for box in results[0].boxes:
+                xmin, ymin, xmax, ymax = map(int, box.xyxy[0])  # バウンディングボックスの座標
+                mask_frame = cv2.rectangle(mask_frame,(xmin, ymin),(xmax, ymax),color=(255,255,255),thickness=cv2.FILLED)
+            out_frame = cv2.inpaint(out_frame,mask_frame,1,cv2.INPAINT_TELEA)
+        else:
+            for box in results[0].boxes:
+                xmin, ymin, xmax, ymax = map(int, box.xyxy[0])  # バウンディングボックスの座標
+                out_frame = cv2.rectangle(out_frame ,(xmin, ymin),(xmax, ymax),name_color,-1)
+
     if copyright==True:
         out_frame=put_C_SQUARE_ENIX(out_frame,w,h)
     for box_op in rect_op:
@@ -163,9 +171,11 @@ def main(page: ft.Page):
     logger = getLogger('ultralytics')
     logger.disabled = True
 
-    f_score_init=0.20
+    f_score_init=0.01
 
     rect_op=[]
+
+    model,codec,hwaccel=gpu_model_codec_hwaccel()
 
     def update_check():
         try:
@@ -178,8 +188,9 @@ def main(page: ft.Page):
         except:
             pass
 
+
     #movie main
-    def video_main(in_filename, out_filename,score:float, process_frame,start_time,end_time,copyright:bool,name_color,fixwin_color):
+    def video_main(in_filename, out_filename,score:float, process_frame,start_time,end_time,copyright:bool,name_color,fixwin_color,inpaint:bool,model):
 
         elapsed_i=0
         trim_skip=False
@@ -230,8 +241,8 @@ def main(page: ft.Page):
         else:
             video_1=video_temp_filename_1
 
-        process1 = start_ffmpeg_process1(video_1,color_primaries)
-        process2 = start_ffmpeg_process2(video_temp_filename_2, width, height,vfps)
+        process1 = start_ffmpeg_process1(video_1,color_primaries,hwaccel)
+        process2 = start_ffmpeg_process2(video_temp_filename_2, width, height,vfps,hwaccel,codec)
 
         while True:
             in_frame = read_frame(process1, width, height)
@@ -241,7 +252,7 @@ def main(page: ft.Page):
 
             current_frame_number += 1
 
-            out_frame = process_frame(in_frame,width, height,model,score,0,rect_op,copyright,name_color,fixwin_color)
+            out_frame = process_frame(in_frame,width, height,model,score,0,rect_op,copyright,name_color,fixwin_color,inpaint)
             write_frame(process2, out_frame)
 
             elapsed_i=time.time()-start
@@ -336,7 +347,7 @@ def main(page: ft.Page):
 
         process_finished()
 
-    def image_main(video_in:str,frame:int,score:float,copyright:bool,name_color:str,fixwin_color:str):
+    def image_main(video_in:str,frame:int,score:float,copyright:bool,name_color:str,fixwin_color:str,inpaint:bool,model):
         name_color_r=int(name_color[1:3],base=16)
         name_color_g=int(name_color[3:5],base=16)
         name_color_b=int(name_color[5:],base=16)
@@ -387,6 +398,8 @@ def main(page: ft.Page):
                 cv2.imshow('BlackedOutFrame',img_tmp)
                 snack_bar_message("Reset all the added squares")
 
+
+
         cap = cv2.VideoCapture(video_in)
         width, height,vfps,frame_max ,color_primaries= get_video_size(video_in)
 
@@ -402,17 +415,23 @@ def main(page: ft.Page):
 
         if color_primaries=='bt2020':
             frame=apply_tone_mapping(frame)
+        if inpaint==True:
+            mask_frame = np.zeros((*frame.shape[:-1],1), dtype=np.uint8)
 
-        rsz_frame=frame.copy()
-        rsz_frame=cv2.resize(rsz_frame,None,fx=0.5,fy=0.5,interpolation=cv2.INTER_LINEAR)
-
-        results = model.predict(source=rsz_frame,conf=score,device=0,imgsz=int(w*0.5),show_labels=False,show_conf=False,show_boxes=False)
+        results = model.predict(source=frame,conf=score,device=0,imgsz=1280,show_labels=False,show_conf=False,show_boxes=False)
 
         # Display the annotated frame
         if len(results[0]) > 0:
-            for box in results[0].boxes:
-                xmin, ymin, xmax, ymax = map(int, box.xyxy[0])  # bbox
-                frame = cv2.rectangle(frame ,(int(xmin*(1/0.5)), int(ymin*(1/0.5))),(int(xmax*(1/0.5)), int(ymax*(1/0.5))),(name_color_b, name_color_g, name_color_r),-1)
+            if inpaint==True:
+                for box in results[0].boxes:
+                    xmin, ymin, xmax, ymax = map(int, box.xyxy[0])  # バウンディングボックスの座標
+                    mask_frame = cv2.rectangle(mask_frame,(xmin, ymin),(xmax, ymax),color=(255,255,255),thickness=cv2.FILLED)
+                frame = cv2.inpaint(frame,mask_frame,1,cv2.INPAINT_TELEA)
+            else:
+                for box in results[0].boxes:
+                    xmin, ymin, xmax, ymax = map(int, box.xyxy[0])  # バウンディングボックスの座標
+                    frame = cv2.rectangle(frame ,(xmin, ymin),(xmax, ymax),(name_color_b, name_color_g, name_color_r),-1)
+
         if copyright==True:
             frame=put_C_SQUARE_ENIX(frame,w,h)
         frame_op_add=frame.copy()
@@ -446,6 +465,10 @@ def main(page: ft.Page):
         video_frame_slider.disabled=False
         pcname_color.disabled=False
         fixwindow_color.disabled=False
+        check_inpaint.disabled=False
+        # if cuda_is_available==True:
+        #     check_tensorrt.disabled=False
+        check_copyright.disabled=False
         page.update()
 
     def start_clicked(e):
@@ -463,6 +486,11 @@ def main(page: ft.Page):
         video_frame_slider.disabled=True
         pcname_color.disabled=True
         fixwindow_color.disabled=True
+        check_inpaint.disabled=True
+        # check_tensorrt.disabled=True
+        check_copyright.disabled=True
+        # model_confirm=model_check(model)
+        page.add(image_ring)
         page.update()
         name_color_r=int(str(pcname_color.icon_color)[1:3],base=16)
         name_color_g=int(str(pcname_color.icon_color)[3:5],base=16)
@@ -472,7 +500,7 @@ def main(page: ft.Page):
         fixwin_color_b=int(str(fixwindow_color.icon_color)[5:],base=16)
         pcname_color_bgr=(name_color_b,name_color_g,name_color_r)
         fixwin_color_bgr=(fixwin_color_b,fixwin_color_g,fixwin_color_r)
-        video_main(selected_files.value,save_file_path.value,float(slider_t.value),predict_frame, int(frame_range_slider_start_min.value)*60+int(frame_range_slider_start_sec.value) , int(frame_range_slider_end_min.value)*60+int(frame_range_slider_end_sec.value),check_copyright.value,pcname_color_bgr,fixwin_color_bgr)
+        video_main(selected_files.value,save_file_path.value,float(slider_t.value),predict_frame, int(frame_range_slider_start_min.value)*60+int(frame_range_slider_start_sec.value) , int(frame_range_slider_end_min.value)*60+int(frame_range_slider_end_sec.value),check_copyright.value,pcname_color_bgr,fixwin_color_bgr,check_inpaint.value,model)
 
 
     def stop_clicked(e):
@@ -484,6 +512,11 @@ def main(page: ft.Page):
         preview_button.icon_color=ft.colors.GREEN
         pcname_color.disabled=False
         fixwindow_color.disabled=False
+        check_inpaint.disabled=False
+        # if cuda_is_available==True:
+        #     check_tensorrt.disabled=False
+        check_copyright.disabled=False
+
         page.update()
 
     def preview_clicked(e):
@@ -493,9 +526,13 @@ def main(page: ft.Page):
         start_button.icon_color=''
         pcname_color.disabled=True
         fixwindow_color.disabled=True
+        check_inpaint.disabled=True
+        # check_tensorrt.disabled=True
+        check_copyright.disabled=True
+        # model_confirm=model_check(model)
         page.add(image_ring)
         page.update()
-        image_main(selected_files.value,int(frame_slider_t.value),float(slider_t.value),check_copyright.value,str(pcname_color.icon_color),str(fixwindow_color.icon_color))
+        image_main(selected_files.value,int(frame_slider_t.value),float(slider_t.value),check_copyright.value,str(pcname_color.icon_color),str(fixwindow_color.icon_color),check_inpaint.value,model)
         page.remove(image_ring)
         preview_button.disabled=False
         preview_button.icon_color=ft.colors.GREEN
@@ -503,7 +540,32 @@ def main(page: ft.Page):
         start_button.icon_color=ft.colors.BLUE
         pcname_color.disabled=False
         fixwindow_color.disabled=False
+        check_inpaint.disabled=False
+        # if cuda_is_available==True:
+        #     check_tensorrt.disabled=False
+        check_copyright.disabled=False
         page.update()
+
+    # def model_check(model_ori):
+    #     if check_tensorrt.value==True:
+    #         if os.path.isfile(resource_path("my_yolov8m.engine")) == False:
+    #             make_tensort(model_ori)
+    #         else:
+    #             my_yolo_pt_time=os.path.getmtime(resource_path("my_yolov8m.pt"))
+    #             my_yolo_engine_time=os.path.getmtime(resource_path("my_yolov8m.engine"))
+    #             if my_yolo_pt_time > my_yolo_engine_time:
+    #                 make_tensort(model_ori)
+    #         model = YOLO(resource_path("my_yolov8m.engine"))
+    #     else:
+    #         model=model_ori
+    #     return model
+
+    # def make_tensort(model):
+    #     page.add(image_ring)
+    #     snack_bar_message("Export TensorRT...Please wait about 5 minutes...")
+    #     model.export(format="engine",imgsz=1280, half=True, dynamic=True)
+    #     page.remove(image_ring)
+    #     snack_bar_message("Export TensorRT Complete!")
 
     #ProgressBar
     pb = ft.ProgressBar(value=0,width=400)
@@ -691,8 +753,13 @@ def main(page: ft.Page):
     update_check()
     page.overlay.extend([pick_files_dialog, save_file_dialog])
 
-    score_threshold_slider=ft.Slider(min=0, max=0.5, value=f_score_init,divisions=50,on_change=slider_change)
+    score_threshold_slider=ft.Slider(min=0, max=0.5, width=120,value=f_score_init,divisions=50,on_change=slider_change)
     check_copyright=ft.Checkbox(label="Add Copyright", value=True)
+    check_inpaint=ft.Checkbox(label="Inpaint", value=False)
+    # check_tensorrt=ft.Checkbox(label="Use TensorRT", value=True)
+    # if cuda_is_available ==False:
+    #     check_tensorrt.disabled=True
+    #     check_tensorrt.value=False
 
     video_frame_slider=ft.Slider(min=0, max=1000, divisions=1000,width=300,disabled=True,on_change=frame_slider_change)
 
@@ -800,15 +867,16 @@ def main(page: ft.Page):
                 ]
                 ),
         ft.Row(controls=[
-                # ft.Text("  "),
                 ft.Text("Score Threshold"),
                 score_threshold_slider,
                 slider_t,
                 ft.Text("  "),
+                # check_tensorrt,
                 check_copyright,
                 ]
         ),
         ft.Row(controls=[
+                check_inpaint,
                 pcname_color,
                 fixwindow_color,
                 ]
