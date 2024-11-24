@@ -1,6 +1,6 @@
 3RD-PARTY-LICENSE
 
- Jinja2                     3.1.4           BSD License
+ Jinja2                     3.1.3           BSD License
 
 Copyright 2007 Pallets
 
@@ -164,7 +164,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 
- anyio                      4.4.0           MIT License
+ anyio                      4.6.2.post1           MIT License
 
 The MIT License (MIT)
 
@@ -424,7 +424,7 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
- certifi                    2024.7.4        Mozilla Public License 2.0 (MPL 2.0)
+ certifi                    2024.8.30        Mozilla Public License 2.0 (MPL 2.0)
 
 This package contains a modified version of ca-bundle.crt:
 
@@ -954,7 +954,7 @@ necessary.  Here is a sample; alter the names:
 That's all there is to it!
 
 
- charset-normalizer         3.3.2           MIT License
+ charset-normalizer         3.4.0           MIT License
 
 MIT License
 
@@ -1042,7 +1042,7 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
- contourpy                  1.2.1           BSD License
+ contourpy                  1.3.1           BSD License
 
 BSD 3-Clause License
 
@@ -1173,7 +1173,7 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
 DAMAGE.
 
 
- fastapi                    0.112.2         MIT License
+ fastapi                    0.115.5         MIT License
 
 The MIT License (MIT)
 
@@ -1198,7 +1198,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 
 
- filelock                   3.15.4          The Unlicense (Unlicense)
+ filelock                   3.13.1          The Unlicense (Unlicense)
 
 This is free and unencumbered software released into the public domain.
 
@@ -1226,7 +1226,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 For more information, please refer to <http://unlicense.org>
 
 
- flet                       0.23.2          Apache Software License
+ flet                       0.24.1          Apache Software License
 
                                  Apache License
                            Version 2.0, January 2004
@@ -1636,7 +1636,7 @@ For more information, please refer to <http://unlicense.org>
    limitations under the License.
 
 
- flet-runtime               0.23.2          Apache Software License
+ flet-runtime               0.24.1          Apache Software License
 
                                  Apache License
                            Version 2.0, January 2004
@@ -1841,7 +1841,7 @@ For more information, please refer to <http://unlicense.org>
    limitations under the License.
 
 
- fonttools                  4.53.1          MIT License
+ fonttools                  4.55.0          MIT License
 
 MIT License
 
@@ -1866,7 +1866,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 
- fsspec                     2024.6.1        BSD License
+ fsspec                     2024.2.0        BSD License
 
 BSD 3-Clause License
 
@@ -1925,7 +1925,7 @@ OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
- httpcore                   1.0.5           BSD License
+ httpcore                   1.0.7           BSD License
 
 Copyright © 2020, [Encode OSS Ltd](https://www.encode.io/).
 All rights reserved.
@@ -1956,7 +1956,7 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
- httptools                  0.6.1           MIT License
+ httptools                  0.6.4           MIT License
 
 The MIT License
 
@@ -1981,7 +1981,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 
 
- httpx                      0.27.0          BSD License
+ httpx                      0.27.2          BSD License
 
 Copyright © 2019, [Encode OSS Ltd](https://www.encode.io/).
 All rights reserved.
@@ -1997,7 +1997,7 @@ Redistribution and use in source and binary forms, with or without modification,
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
- idna                       3.8             BSD License
+ idna                       3.10             BSD License
 
 BSD 3-Clause License
 
@@ -2032,7 +2032,7 @@ NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
- kiwisolver                 1.4.5           BSD License
+ kiwisolver                 1.4.7           BSD License
 
 =========================
  The Kiwi licensing terms
@@ -2316,7 +2316,7 @@ OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
 DAMAGE.
 
 
- networkx                   3.3             BSD License
+ networkx                   3.2.1             BSD License
 
 NetworkX is distributed with the 3-clause BSD license.
 
@@ -2357,7 +2357,7 @@ NetworkX is distributed with the 3-clause BSD license.
    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
- numpy                      1.26.4          BSD License
+ numpy                      1.26.3          BSD License
 
 Copyright (c) 2005-2024, NumPy Developers.
 All rights reserved.
@@ -2454,7 +2454,7 @@ found in LICENSE.APACHE or LICENSE.BSD. Contributions to this software is made
 under the terms of *both* these licenses.
 
 
- pandas                     2.2.2           BSD License
+ pandas                     2.2.3           BSD License
 
 BSD 3-Clause License
 
@@ -2514,7 +2514,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 
- pillow                     10.4.0          Historical Permission Notice and Disclaimer (HPND)
+ pillow                     10.2.0          Historical Permission Notice and Disclaimer (HPND)
 
 The Python Imaging Library (PIL) is
 
@@ -2573,7 +2573,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 
- psutil                     6.0.0           BSD License
+ psutil                     6.1.0           BSD License
 
 BSD 3-Clause License
 
@@ -2630,7 +2630,7 @@ IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
- pydantic                   2.8.2           MIT License
+ pydantic                   2.9.2           MIT License
 
 The MIT License (MIT)
 
@@ -2655,7 +2655,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 
- pydantic_core              2.20.1          MIT License
+ pydantic_core              2.23.4          MIT License
 
 The MIT License (MIT)
 
@@ -2680,7 +2680,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 
- pyinstaller                6.10.0          GNU General Public License v2 (GPLv2)
+ pyinstaller                6.11.1          GNU General Public License v2 (GPLv2)
 
 PyInstaller is distributed under a dual-licensing scheme using both the GPL 2.0 License, with an exception that allows you to use it to build commercial products - listed below - and the Apache License, version 2.0, which only applies to a certain few files. To see which files the Apache license applies to, and to which the GPL applies, please see the COPYING.txt file which can be found in the root of the PyInstaller source repository.
 
@@ -2696,7 +2696,7 @@ You may modify PyInstaller for your own needs but changes to the
 PyInstaller source code fall under the terms of the GPL license. That is, if you distribute your modifications you must distribute them under GPL terms.
 
 
- pyinstaller-hooks-contrib  2024.8          Apache Software License; GNU General Public License v2 (GPLv2)
+ pyinstaller-hooks-contrib  2024.10          Apache Software License; GNU General Public License v2 (GPLv2)
 
 ============================================
 PyInstaller Community Hooks: License details
@@ -3221,7 +3221,7 @@ Apache License 2.0
    limitations under the License.
 
 
- pyparsing                  3.1.4           MIT License
+ pyparsing                  3.2.0           MIT License
 
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the
@@ -3382,7 +3382,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 
 
- pytz                       2024.1          MIT License
+ pytz                       2024.2          MIT License
 
 MIT license.
 
@@ -3679,7 +3679,7 @@ SOFTWARE.
       of your accepting any such warranty or additional liability.
 
 
- rich                       13.7.1          MIT License
+ rich                       13.9.4          MIT License
 
 Copyright (c) 2020 Will McGugan
 
@@ -4019,7 +4019,7 @@ LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
- starlette                  0.38.2          BSD License
+ starlette                  0.41.3          BSD License
 
 Copyright © 2018, [Encode OSS Ltd](https://www.encode.io/).
 All rights reserved.
@@ -4206,7 +4206,8 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
- text-unidecode             1.3             Artistic License; GNU General Public License (GPL); GNU General Public License v2 or later (GPLv2+)
+
+text-unidecode             1.3             Artistic License; GNU General Public License (GPL); GNU General Public License v2 or later (GPLv2+)
 
 text-unidecode is a free software; you can redistribute
 it and/or modify it under the terms of either:
@@ -4343,7 +4344,7 @@ WARRANTIES OF MERCHANTIBILITY AND FITNESS FOR A PARTICULAR PURPOSE.
 
                                 The End
 
- torch                      2.4.0+cu121     BSD License
+ torch                      2.5.1+cu124     BSD License
 
 From PyTorch:
 
@@ -4427,7 +4428,7 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 POSSIBILITY OF SUCH DAMAGE.
 
 
- torchvision                0.19.0+cu121    BSD
+ torchvision                0.20.1+cu124    BSD
 
 BSD 3-Clause License
 
@@ -4460,7 +4461,7 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
- tqdm                       4.66.5          MIT License; Mozilla Public License 2.0 (MPL 2.0)
+ tqdm                       4.67.0          MIT License; Mozilla Public License 2.0 (MPL 2.0)
 
 `tqdm` is a product of collaborative work.
 Unless otherwise stated, all authors (see commit logs) retain copyright
@@ -4513,7 +4514,7 @@ IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
- types-python-dateutil      2.9.0.20240821  Apache Software License
+ types-python-dateutil      2.9.0.20241003  Apache Software License
 
 The "typeshed" project is licensed under the terms of the Apache license, as
 reproduced below.
@@ -4754,7 +4755,7 @@ DEALINGS IN THE SOFTWARE.
 = = = = =
 
 
- typing_extensions          4.12.2          Python Software Foundation License
+ typing_extensions          4.9.0          Python Software Foundation License
 
 A. HISTORY OF THE SOFTWARE
 ==========================
@@ -5037,7 +5038,7 @@ OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
 PERFORMANCE OF THIS SOFTWARE.
 
 
- tzdata                     2024.1          Apache Software License
+ tzdata                     2024.2          Apache Software License
 
 Apache Software License 2.0
 
@@ -5056,7 +5057,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 
- ultralytics                8.2.82          GNU Affero General Public License v3 or later (AGPLv3+)
+ ultralytics                8.3.34          GNU Affero General Public License v3 or later (AGPLv3+)
 
                     GNU AFFERO GENERAL PUBLIC LICENSE
                        Version 3, 19 November 2007
@@ -5721,7 +5722,7 @@ For more information on this, and how to apply and follow the GNU AGPL, see
 <https://www.gnu.org/licenses/>.
 
 
- ultralytics-thop           2.0.5           GNU Affero General Public License v3 or later (AGPLv3+)
+ ultralytics-thop           2.0.12           GNU Affero General Public License v3 or later (AGPLv3+)
 
                     GNU AFFERO GENERAL PUBLIC LICENSE
                        Version 3, 19 November 2007
@@ -6386,7 +6387,7 @@ For more information on this, and how to apply and follow the GNU AGPL, see
 <https://www.gnu.org/licenses/>.
 
 
- urllib3                    2.2.2           MIT License
+ urllib3                    2.2.3           MIT License
 
 MIT License
 
@@ -6411,7 +6412,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 
- uvicorn                    0.30.6          BSD License
+ uvicorn                    0.32.0          BSD License
 
 Copyright © 2017-present, [Encode OSS Ltd](https://www.encode.io/).
 All rights reserved.
@@ -6648,7 +6649,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
    limitations under the License.
 
 
- watchfiles                 0.23.0          MIT License
+ watchfiles                 0.24.0         MIT License
 
 The MIT License (MIT)
 
@@ -7525,3 +7526,131 @@ flet-core                 0.24.1          Apache Software License (Apache-2.0)
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
    limitations under the License.
+
+
+lapx                      0.5.11          BSD 2-Clause "Simplified" License
+
+Copyright (c) 2012-2017, Tomas Kazmar
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
+
+    Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
+    Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+
+pip                       24.3.1          MIT license
+
+Copyright (c) 2008-present The pip developers (see AUTHORS.txt file)
+
+Permission is hereby granted, free of charge, to any person obtaining
+a copy of this software and associated documentation files (the
+"Software"), to deal in the Software without restriction, including
+without limitation the rights to use, copy, modify, merge, publish,
+distribute, sublicense, and/or sell copies of the Software, and to
+permit persons to whom the Software is furnished to do so, subject to
+the following conditions:
+
+The above copyright notice and this permission notice shall be
+included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+
+setuptools                65.5.0            MIT License
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to
+deal in the Software without restriction, including without limitation the
+rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+sell copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+IN THE SOFTWARE.
+
+
+soupsieve                 2.6            MIT License
+
+MIT License
+
+Copyright (c) 2018 - 2024 Isaac Muse <isaacmuse@gmail.com>
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+
+Python 3.11
+
+1. This LICENSE AGREEMENT is between the Python Software Foundation ("PSF"), and
+   the Individual or Organization ("Licensee") accessing and otherwise using Python
+   3.11.10 software in source or binary form and its associated documentation.
+
+2. Subject to the terms and conditions of this License Agreement, PSF hereby
+   grants Licensee a nonexclusive, royalty-free, world-wide license to reproduce,
+   analyze, test, perform and/or display publicly, prepare derivative works,
+   distribute, and otherwise use Python 3.11.10 alone or in any derivative
+   version, provided, however, that PSF's License Agreement and PSF's notice of
+   copyright, i.e., "Copyright © 2001-2023 Python Software Foundation; All Rights
+   Reserved" are retained in Python 3.11.10 alone or in any derivative version
+   prepared by Licensee.
+
+3. In the event Licensee prepares a derivative work that is based on or
+   incorporates Python 3.11.10 or any part thereof, and wants to make the
+   derivative work available to others as provided herein, then Licensee hereby
+   agrees to include in any such work a brief summary of the changes made to Python
+   3.11.10.
+
+4. PSF is making Python 3.11.10 available to Licensee on an "AS IS" basis.
+   PSF MAKES NO REPRESENTATIONS OR WARRANTIES, EXPRESS OR IMPLIED.  BY WAY OF
+   EXAMPLE, BUT NOT LIMITATION, PSF MAKES NO AND DISCLAIMS ANY REPRESENTATION OR
+   WARRANTY OF MERCHANTABILITY OR FITNESS FOR ANY PARTICULAR PURPOSE OR THAT THE
+   USE OF PYTHON 3.11.10 WILL NOT INFRINGE ANY THIRD PARTY RIGHTS.
+
+5. PSF SHALL NOT BE LIABLE TO LICENSEE OR ANY OTHER USERS OF PYTHON 3.11.10
+   FOR ANY INCIDENTAL, SPECIAL, OR CONSEQUENTIAL DAMAGES OR LOSS AS A RESULT OF
+   MODIFYING, DISTRIBUTING, OR OTHERWISE USING PYTHON 3.11.10, OR ANY DERIVATIVE
+   THEREOF, EVEN IF ADVISED OF THE POSSIBILITY THEREOF.
+
+6. This License Agreement will automatically terminate upon a material breach of
+   its terms and conditions.
+
+7. Nothing in this License Agreement shall be deemed to create any relationship
+   of agency, partnership, or joint venture between PSF and Licensee.  This License
+   Agreement does not grant permission to use PSF trademarks or trade name in a
+   trademark sense to endorse or promote products or services of Licensee, or any
+   third party.
+
+8. By copying, installing or otherwise using Python 3.11.10, Licensee agrees
+   to be bound by the terms and conditions of this License Agreement.

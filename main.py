@@ -19,7 +19,7 @@ try:
 except:
     pass
 
-ver="ver.20241117"
+ver="ver.20241124"
 github_url="https://raw.githubusercontent.com/calocenrieti/WoLNamesBlackedOut/main/main.py"
 
 # 実行ファイルのパスの取得
@@ -108,24 +108,25 @@ def read_frame(process1, width, height):
     return frame
 
 
-def predict_frame(in_frame,w,h,model,score,device,rect_op,copyright,name_color,fixwin_color,inpaint):
+def predict_frame(in_frame,w,h,model,score,device,rect_op,copyright,name_color,fixwin_color,inpaint,no_inference):
 
     out_frame=in_frame.copy()
     if inpaint==True:
         mask_frame = np.zeros((*out_frame.shape[:-1],1), dtype=np.uint8)
 
-    results = model.predict(source=out_frame,conf=score,device=device,imgsz=1280,show_labels=False,show_conf=False,show_boxes=False,augment=False,stream_buffer=False)
+    if no_inference==False:
+        results = model.predict(source=out_frame,conf=score,device=device,imgsz=1280,show_labels=False,show_conf=False,show_boxes=False,augment=False,stream_buffer=False)
 
-    if len(results[0]) > 0:
-        if inpaint==True:
-            for box in results[0].boxes:
-                xmin, ymin, xmax, ymax = map(int, box.xyxy[0])  # バウンディングボックスの座標
-                mask_frame = cv2.rectangle(mask_frame,(xmin, ymin),(xmax, ymax),color=(255,255,255),thickness=cv2.FILLED)
-            out_frame = cv2.inpaint(out_frame,mask_frame,1,cv2.INPAINT_TELEA)
-        else:
-            for box in results[0].boxes:
-                xmin, ymin, xmax, ymax = map(int, box.xyxy[0])  # バウンディングボックスの座標
-                out_frame = cv2.rectangle(out_frame ,(xmin, ymin),(xmax, ymax),name_color,-1)
+        if len(results[0]) > 0:
+            if inpaint==True:
+                for box in results[0].boxes:
+                    xmin, ymin, xmax, ymax = map(int, box.xyxy[0])  # バウンディングボックスの座標
+                    mask_frame = cv2.rectangle(mask_frame,(xmin, ymin),(xmax, ymax),color=(255,255,255),thickness=cv2.FILLED)
+                out_frame = cv2.inpaint(out_frame,mask_frame,1,cv2.INPAINT_TELEA)
+            else:
+                for box in results[0].boxes:
+                    xmin, ymin, xmax, ymax = map(int, box.xyxy[0])  # バウンディングボックスの座標
+                    out_frame = cv2.rectangle(out_frame ,(xmin, ymin),(xmax, ymax),name_color,-1)
 
     if copyright==True:
         out_frame=put_C_SQUARE_ENIX(out_frame,w,h)
@@ -190,7 +191,7 @@ def main(page: ft.Page):
 
 
     #movie main
-    def video_main(in_filename, out_filename,score:float, process_frame,start_time,end_time,copyright:bool,name_color,fixwin_color,inpaint:bool,model):
+    def video_main(in_filename, out_filename,score:float, process_frame,start_time,end_time,copyright:bool,name_color,fixwin_color,inpaint:bool,model,no_inference:bool):
 
         elapsed_i=0
         trim_skip=False
@@ -252,7 +253,7 @@ def main(page: ft.Page):
 
             current_frame_number += 1
 
-            out_frame = process_frame(in_frame,width, height,model,score,0,rect_op,copyright,name_color,fixwin_color,inpaint)
+            out_frame = process_frame(in_frame,width, height,model,score,0,rect_op,copyright,name_color,fixwin_color,inpaint,no_inference)
             write_frame(process2, out_frame)
 
             elapsed_i=time.time()-start
@@ -347,7 +348,7 @@ def main(page: ft.Page):
 
         process_finished()
 
-    def image_main(video_in:str,frame:int,score:float,copyright:bool,name_color:str,fixwin_color:str,inpaint:bool,model):
+    def image_main(video_in:str,frame:int,score:float,copyright:bool,name_color:str,fixwin_color:str,inpaint:bool,model,no_inference:bool):
         name_color_r=int(name_color[1:3],base=16)
         name_color_g=int(name_color[3:5],base=16)
         name_color_b=int(name_color[5:],base=16)
@@ -418,19 +419,20 @@ def main(page: ft.Page):
         if inpaint==True:
             mask_frame = np.zeros((*frame.shape[:-1],1), dtype=np.uint8)
 
-        results = model.predict(source=frame,conf=score,device=0,imgsz=1280,show_labels=False,show_conf=False,show_boxes=False)
+        if no_inference==False:
+            results = model.predict(source=frame,conf=score,device=0,imgsz=1280,show_labels=False,show_conf=False,show_boxes=False)
 
-        # Display the annotated frame
-        if len(results[0]) > 0:
-            if inpaint==True:
-                for box in results[0].boxes:
-                    xmin, ymin, xmax, ymax = map(int, box.xyxy[0])  # バウンディングボックスの座標
-                    mask_frame = cv2.rectangle(mask_frame,(xmin, ymin),(xmax, ymax),color=(255,255,255),thickness=cv2.FILLED)
-                frame = cv2.inpaint(frame,mask_frame,1,cv2.INPAINT_TELEA)
-            else:
-                for box in results[0].boxes:
-                    xmin, ymin, xmax, ymax = map(int, box.xyxy[0])  # バウンディングボックスの座標
-                    frame = cv2.rectangle(frame ,(xmin, ymin),(xmax, ymax),(name_color_b, name_color_g, name_color_r),-1)
+            # Display the annotated frame
+            if len(results[0]) > 0:
+                if inpaint==True:
+                    for box in results[0].boxes:
+                        xmin, ymin, xmax, ymax = map(int, box.xyxy[0])  # バウンディングボックスの座標
+                        mask_frame = cv2.rectangle(mask_frame,(xmin, ymin),(xmax, ymax),color=(255,255,255),thickness=cv2.FILLED)
+                    frame = cv2.inpaint(frame,mask_frame,1,cv2.INPAINT_TELEA)
+                else:
+                    for box in results[0].boxes:
+                        xmin, ymin, xmax, ymax = map(int, box.xyxy[0])  # バウンディングボックスの座標
+                        frame = cv2.rectangle(frame ,(xmin, ymin),(xmax, ymax),(name_color_b, name_color_g, name_color_r),-1)
 
         if copyright==True:
             frame=put_C_SQUARE_ENIX(frame,w,h)
@@ -466,8 +468,7 @@ def main(page: ft.Page):
         pcname_color.disabled=False
         fixwindow_color.disabled=False
         check_inpaint.disabled=False
-        # if cuda_is_available==True:
-        #     check_tensorrt.disabled=False
+        check_no_inference.disabled=False
         check_copyright.disabled=False
         page.update()
 
@@ -487,7 +488,7 @@ def main(page: ft.Page):
         pcname_color.disabled=True
         fixwindow_color.disabled=True
         check_inpaint.disabled=True
-        # check_tensorrt.disabled=True
+        check_no_inference.disabled=True
         check_copyright.disabled=True
         # model_confirm=model_check(model)
         page.add(image_ring)
@@ -500,7 +501,7 @@ def main(page: ft.Page):
         fixwin_color_b=int(str(fixwindow_color.icon_color)[5:],base=16)
         pcname_color_bgr=(name_color_b,name_color_g,name_color_r)
         fixwin_color_bgr=(fixwin_color_b,fixwin_color_g,fixwin_color_r)
-        video_main(selected_files.value,save_file_path.value,float(slider_t.value),predict_frame, int(frame_range_slider_start_min.value)*60+int(frame_range_slider_start_sec.value) , int(frame_range_slider_end_min.value)*60+int(frame_range_slider_end_sec.value),check_copyright.value,pcname_color_bgr,fixwin_color_bgr,check_inpaint.value,model)
+        video_main(selected_files.value,save_file_path.value,float(slider_t.value),predict_frame, int(frame_range_slider_start_min.value)*60+int(frame_range_slider_start_sec.value) , int(frame_range_slider_end_min.value)*60+int(frame_range_slider_end_sec.value),check_copyright.value,pcname_color_bgr,fixwin_color_bgr,check_inpaint.value,model,check_no_inference.value)
 
 
     def stop_clicked(e):
@@ -513,8 +514,7 @@ def main(page: ft.Page):
         pcname_color.disabled=False
         fixwindow_color.disabled=False
         check_inpaint.disabled=False
-        # if cuda_is_available==True:
-        #     check_tensorrt.disabled=False
+        check_no_inference.disabled=False
         check_copyright.disabled=False
 
         page.update()
@@ -527,12 +527,12 @@ def main(page: ft.Page):
         pcname_color.disabled=True
         fixwindow_color.disabled=True
         check_inpaint.disabled=True
-        # check_tensorrt.disabled=True
+        check_no_inference.disabled=True
         check_copyright.disabled=True
         # model_confirm=model_check(model)
         page.add(image_ring)
         page.update()
-        image_main(selected_files.value,int(frame_slider_t.value),float(slider_t.value),check_copyright.value,str(pcname_color.icon_color),str(fixwindow_color.icon_color),check_inpaint.value,model)
+        image_main(selected_files.value,int(frame_slider_t.value),float(slider_t.value),check_copyright.value,str(pcname_color.icon_color),str(fixwindow_color.icon_color),check_inpaint.value,model,check_no_inference.value)
         page.remove(image_ring)
         preview_button.disabled=False
         preview_button.icon_color=ft.colors.GREEN
@@ -541,8 +541,7 @@ def main(page: ft.Page):
         pcname_color.disabled=False
         fixwindow_color.disabled=False
         check_inpaint.disabled=False
-        # if cuda_is_available==True:
-        #     check_tensorrt.disabled=False
+        check_no_inference.disabled=False
         check_copyright.disabled=False
         page.update()
 
@@ -757,9 +756,7 @@ def main(page: ft.Page):
     check_copyright=ft.Checkbox(label="Add Copyright", value=True)
     check_inpaint=ft.Checkbox(label="Inpaint", value=False)
     # check_tensorrt=ft.Checkbox(label="Use TensorRT", value=True)
-    # if cuda_is_available ==False:
-    #     check_tensorrt.disabled=True
-    #     check_tensorrt.value=False
+    check_no_inference=ft.Checkbox(label="No_Inference", value=False)
 
     video_frame_slider=ft.Slider(min=0, max=1000, divisions=1000,width=300,disabled=True,on_change=frame_slider_change)
 
@@ -872,13 +869,14 @@ def main(page: ft.Page):
                 slider_t,
                 ft.Text("  "),
                 # check_tensorrt,
-                check_copyright,
+                check_no_inference,
                 ]
         ),
         ft.Row(controls=[
                 check_inpaint,
                 pcname_color,
                 fixwindow_color,
+                check_copyright,
                 ]
         ),
         ft.Divider(),
