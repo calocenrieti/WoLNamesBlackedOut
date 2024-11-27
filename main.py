@@ -19,7 +19,7 @@ try:
 except:
     pass
 
-ver="ver.20241124"
+ver="ver.20241127"
 github_url="https://raw.githubusercontent.com/calocenrieti/WoLNamesBlackedOut/main/main.py"
 
 # 実行ファイルのパスの取得
