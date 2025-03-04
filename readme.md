@@ -12,8 +12,7 @@ Windows11<br>
 NVIDIA Geforce 2060以上を推奨（CUDA、NVENC利用）<br>
 AMD Radeonでも動作すると思われる。未確認（ONNX、AMF利用）<br>
 Python3.11<br>
-Windowsでの実行EXEファイルのダウンロードはこちらから<br>
-[ダウンロード](https://download-count-gpemgma5enb6cqe6.japaneast-01.azurewebsites.net/download_WoLNamesBlackedOut.php)
+
 
 ## コード利用上の注意点
 次のファイルはファイルサイズ制限の問題から、githubではダミーファイルを置いています。
@@ -21,7 +20,7 @@ Windowsでの実行EXEファイルのダウンロードはこちらから<br>
 + my_yolov8m.onnx
 
 ファイルが必要であれば、googleドライブよりダウンロード願います。<br>
-[ダウンロード](https://download-count-gpemgma5enb6cqe6.japaneast-01.azurewebsites.net/download.php)
+
 
 ffmpegのバイナリ（./ffmpeg/bin/）もファイルサイズ制限からgithubにありません。<br>
 必要であれば、次のアドレスからダウンロードください。<br>
